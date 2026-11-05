@@ -92,6 +92,9 @@ class Format {
         // =================== 
         let __f_numbers = this._data.contains.regexDynamic.number;
         let __f_builtin = this._data.builtin;
+        let __f_words = this._data.builtinWords
+            ? new RegExp(`(^|[\\s(])(${[...__f_builtin].sort((a, b) => b.length - a.length).join('|')})(?=$|[\\s)])`, 'g')
+            : null;
 
         // =================== Process numbers and registers
         code.forEach((line, i1) => {
@@ -104,8 +107,13 @@ class Format {
                 _word = _word.map((w) => {
                     // Register first
                     let matches = [];
-                    __f_builtin.forEach((builtin) => { if(w.includes(builtin)) matches.push(builtin) });
-                    
+                    if (__f_words) {
+                        // Bare register names (RISC-V): whole words only, "ra" is not inside "array"
+                        w = w.replace(__f_words, '$1<span class=__f_builtin>$2</span>');
+                    } else {
+                        __f_builtin.forEach((builtin) => { if(w.includes(builtin)) matches.push(builtin) });
+                    }
+
                     // Remove duplicates
                     [...new Set(matches)].sort().reverse().forEach((match) => {
                         w = w.replaceAll(match, `<span class=__f_builtin>${match}</span>`);
@@ -161,6 +169,11 @@ class Format {
                         if (key === "__f_builtin") {
 
                             html = word;
+                            // Whole word registers were already formatted by RNFC
+                            if (this._data.builtinWords) {
+                                formattedCode[index][index2] = html;
+                                return;
+                            }
 
                             let matches = [];
                             __staticWords["__f_builtin"].forEach((builtin) => { if(word.includes(builtin)) matches.push(builtin) });

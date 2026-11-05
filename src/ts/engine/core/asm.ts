@@ -1,24 +1,25 @@
 /* =========================================================================
-    SpimHub - A MIPS Assembly IDE for Web Browsers
+    SpimHub - A MIPS / RISC-V Assembly IDE for Web Browsers
 
-    Path: src/ts/spim/assembler.ts
+    Path: src/ts/engine/core/asm.ts
 
-    Two pass MIPS32 assembler.
+    Two pass assembler shared by every architecture. The instruction set
+    (registers, pseudo instructions, encoding) is given by an `Arch`
+    (src/ts/engine/mips/asm.ts, src/ts/engine/riscv/asm.ts).
 
         Pass 1 : parse every line, bind labels, compute the size of every
                  statement (pseudo instructions included).
         Pass 2 : evaluate expressions, expand pseudo instructions and encode
                  real machine words + data bytes.
 
-    © 2026 ZhengLinLei <zheng9112003@icloud.com>
+    © 2023 ZhengLinLei <zheng9112003@icloud.com>
     MIT License
  ========================================================================== */
-
-import { GPR, COP0, BY_NAME, disassemble, hex } from './isa';
 
 // ================== //
 //  Memory map        //
 // ================== //
+// Same layout for MIPS (SPIM / MARS) and RISC-V (RARS)
 export const SEGMENT = {
     text:  0x00400000,
     data:  0x10010000,
@@ -26,9 +27,8 @@ export const SEGMENT = {
     kdata: 0x90000000,
 } as const;
 
-type SegmentName = keyof typeof SEGMENT;
-
-const AT = 1, RA = 31, ZERO = 0;
+export type SegmentName = keyof typeof SEGMENT;
+export type ArchName = 'mips' | 'riscv';
 
 export class AsmError extends Error {}
 
@@ -52,6 +52,7 @@ export interface DataChunk { addr: number; bytes: Uint8Array; segment: SegmentNa
 
 export interface Program {
     ok: boolean;
+    arch: ArchName;
     filename: string;
     errors: Message[];
     warnings: Message[];
@@ -73,13 +74,13 @@ export interface AssembleOptions { filename?: string; startup?: boolean | 'auto'
 // ================== //
 //  Helpers           //
 // ================== //
-const fitsS16 = (v: number) => v >= -32768 && v <= 32767;
-const fitsU16 = (v: number) => v >= 0 && v <= 0xffff;
-const hi16 = (v: number) => (v >>> 16) & 0xffff;
-const lo16 = (v: number) => v & 0xffff;
+export const fitsS16 = (v: number) => v >= -32768 && v <= 32767;
+export const fitsU16 = (v: number) => v >= 0 && v <= 0xffff;
+export const hi16 = (v: number) => (v >>> 16) & 0xffff;
+export const lo16 = (v: number) => v & 0xffff;
 // %hi() with carry adjustment, so that  lui + signed offset  rebuilds v
-const hiAdj = (v: number) => (((v >>> 0) + 0x8000) >>> 16) & 0xffff;
-const loS = (v: number) => (v << 16) >> 16;
+export const hiAdj = (v: number) => (((v >>> 0) + 0x8000) >>> 16) & 0xffff;
+export const loS = (v: number) => (v << 16) >> 16;
 
 const ESCAPES: Record<string, number> = { n: 10, t: 9, r: 13, '0': 0, '\\': 92, '"': 34, "'": 39, a: 7, b: 8, f: 12, v: 11 };
 
@@ -88,7 +89,7 @@ const utf8 = (s: string): number[] => Array.from(new TextEncoder().encode(s));
 /**
  * @desc: Decodes a quoted string literal (with escapes) into byte codes
 */
-const parseStringLiteral = (lit: string): number[] => {
+export const parseStringLiteral = (lit: string): number[] => {
     const out: number[] = [];
     const body = lit.slice(1, -1);
     for (let i = 0; i < body.length; i++) {
@@ -136,7 +137,7 @@ const stripComment = (line: string): string => {
 /**
  * @desc: Splits operands by commas, respecting quotes and parentheses
 */
-const splitOperands = (s: string): string[] => {
+export const splitOperands = (s: string): string[] => {
     const out: string[] = [];
     let cur = '', q: string | null = null, depth = 0;
     for (let i = 0; i < s.length; i++) {
@@ -164,11 +165,12 @@ export type Expr =
     | { k: 'num'; v: number }
     | { k: 'sym'; v: string }
     | { k: 'un'; op: string; e: Expr }
-    | { k: 'bin'; op: string; l: Expr; r: Expr };
+    | { k: 'bin'; op: string; l: Expr; r: Expr }
+    | { k: 'fn'; name: 'hi' | 'lo'; e: Expr };
 
-type Token = { k: 'num'; v: number } | { k: 'sym'; v: string } | { k: 'op'; v: string };
+type Token = { k: 'num'; v: number } | { k: 'sym'; v: string } | { k: 'op'; v: string } | { k: 'fn'; v: 'hi' | 'lo' };
 
-const TOKEN_RE = /\s*(?:(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+\.\d*(?:[eE][-+]?\d+)?|\d+[eE][-+]?\d+|\.\d+(?:[eE][-+]?\d+)?|\d+)|('(?:\\.|[^'\\])')|([A-Za-z_.$][\w.$]*)|(<<|>>|[-+*/%&|^~()]))/y;
+const TOKEN_RE = /\s*(?:(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+\.\d*(?:[eE][-+]?\d+)?|\d+[eE][-+]?\d+|\.\d+(?:[eE][-+]?\d+)?|\d+)|('(?:\\.|[^'\\])')|([A-Za-z_.$][\w.$]*)|%(hi|lo)\b|(<<|>>|[-+*/%&|^~()]))/y;
 
 /**
  * @desc: Parses an expression into a small AST
@@ -196,8 +198,10 @@ export const parseExpr = (src: string): Expr => {
             toks.push({ k: 'num', v: parseStringLiteral(m[2])[0] || 0 });
         } else if (m[3] !== undefined) {
             toks.push({ k: 'sym', v: m[3] });
+        } else if (m[4] !== undefined) {
+            toks.push({ k: 'fn', v: m[4] as 'hi' | 'lo' });
         } else {
-            toks.push({ k: 'op', v: m[4] });
+            toks.push({ k: 'op', v: m[5] });
         }
     }
     if (!toks.length) throw new AsmError('missing expression');
@@ -219,6 +223,16 @@ export const parseExpr = (src: string): Expr => {
             const op = toks[i++].v as string;
             return { k: 'un', op, e: unary() };
         }
+        // %hi(expr) / %lo(expr) relocations
+        if (peek() && peek().k === 'fn') {
+            const name = toks[i++].v as 'hi' | 'lo';
+            if (!isOp('(')) throw new AsmError(`"%${name}" expects (expression)`);
+            i++;
+            const e = or();
+            if (!isOp(')')) throw new AsmError(`missing ")" in "${src}"`);
+            i++;
+            return { k: 'fn', name, e };
+        }
         if (isOp('(')) {
             i++;
             const e = or();
@@ -227,7 +241,7 @@ export const parseExpr = (src: string): Expr => {
             return e;
         }
         const t = toks[i++];
-        if (!t || t.k === 'op') throw new AsmError(`invalid expression "${src}"`);
+        if (!t || t.k === 'op' || t.k === 'fn') throw new AsmError(`invalid expression "${src}"`);
         return t;
     };
     const mul = binary(unary, ['*', '/', '%']);
@@ -246,7 +260,7 @@ const exprSymbols = (e: Expr | null, out: string[] = []): string[] => {
     if (!e) return out;
     if (e.k === 'sym') out.push(e.v);
     if (e.k === 'bin') { exprSymbols(e.l, out); exprSymbols(e.r, out); }
-    if (e.k === 'un') exprSymbols(e.e, out);
+    if (e.k === 'un' || e.k === 'fn') exprSymbols(e.e, out);
     return out;
 };
 
@@ -255,47 +269,58 @@ const exprSymbols = (e: Expr | null, out: string[] = []): string[] => {
 // ================== //
 /*
     Parsed operands carry an expression (`expr`); resolved operands carry a
-    value (`v`). The pseudo expander works with both.
+    value (`v`). The pseudo expanders work with both.
 */
-type RegOp = { t: 'reg'; n: number; src?: string; expr?: undefined };
-type FregOp = { t: 'freg'; n: number; src?: string; expr?: undefined };
-type ImmOp = { t: 'imm'; v?: number; expr?: Expr; src?: string };
-type MemOp = { t: 'mem'; v?: number; expr?: Expr | null; base: number; src?: string };
-type Operand = RegOp | FregOp | ImmOp | MemOp;
-type Valued = ImmOp | MemOp;
-
-/**
- * @desc: Parses a register name ($t0, $8, $f2...). Returns null if not a register.
-*/
-const parseRegister = (s: string): RegOp | FregOp | null => {
-    const m = /^\$([A-Za-z0-9]+)$/.exec(s.trim());
-    if (!m) return null;
-    const name = m[1].toLowerCase();
-    if (/^f\d+$/.test(name)) {
-        const n = +name.slice(1);
-        if (n > 31) throw new AsmError(`invalid register "${s}"`);
-        return { t: 'freg', n };
-    }
-    if (name in GPR) return { t: 'reg', n: GPR[name] };
-    if (name in COP0) return { t: 'reg', n: COP0[name] };
-    throw new AsmError(`invalid register "${s}"`);
-};
+export type RegOp = { t: 'reg'; n: number; src?: string; expr?: undefined };
+export type FregOp = { t: 'freg'; n: number; src?: string; expr?: undefined };
+export type ImmOp = { t: 'imm'; v?: number; expr?: Expr; src?: string };
+export type MemOp = { t: 'mem'; v?: number; expr?: Expr | null; base: number; src?: string };
+export type Operand = RegOp | FregOp | ImmOp | MemOp;
+export type Valued = ImmOp | MemOp;
 
 /**
  * @desc: Parses one operand into { t: reg | freg | imm | mem }
 */
-const parseOperand = (s: string): Operand => {
+// ================== //
+//  Architecture      //
+// ================== //
+/*
+    Everything the assembler needs to know about an instruction set.
+    expand(mn, ops, ctx) returns the real instructions of a statement:
+        [ [name, [operand, ...], extraBits?], ... ]
+*/
+export interface Arch {
+    name: ArchName;
+    label: string;                                          // MIPS32 / RV32IM
+    // Register name -> operand, null if `s` is not a register (throws for invalid ones)
+    parseRegister(s: string): RegOp | FregOp | null;
+    expand(mn: string, ops: Operand[], ctx: Ctx): Real[];
+    encode(mn: string, ops: Operand[], pc: number, extra?: number): number;
+    disassemble(word: number, pc: number): string;
+    // %hi() / %lo() relocations
+    hi(v: number): number;
+    lo(v: number): number;
+    // Start up code added when the program defines `main`
+    startup: string[];
+}
+
+/**
+ * @desc: Parses one operand into { t: reg | freg | imm | mem }
+*/
+const parseOperand = (s: string, arch: Arch): Operand => {
     s = s.trim();
     if (s === '') throw new AsmError('missing operand');
-    const reg = parseRegister(s);
+    const reg = arch.parseRegister(s);
     if (reg) return reg;
 
     // offset(base) | (base)
-    const mem = /^(.*?)\(\s*(\$[A-Za-z0-9]+)\s*\)$/.exec(s);
+    const mem = /^(.*?)\(\s*([^()]+?)\s*\)$/.exec(s);
     if (mem) {
-        const base = parseRegister(mem[2]);
-        if (!base || base.t !== 'reg') throw new AsmError(`invalid base register "${mem[2]}"`);
-        return { t: 'mem', expr: mem[1].trim() ? parseExpr(mem[1]) : null, base: base.n, src: s };
+        const base = arch.parseRegister(mem[2]);
+        if (base) {
+            if (base.t !== 'reg') throw new AsmError(`invalid base register "${mem[2]}"`);
+            return { t: 'mem', expr: mem[1].trim() ? parseExpr(mem[1]) : null, base: base.n, src: s };
+        }
     }
     if (s.startsWith('$')) throw new AsmError(`invalid register "${s}"`);
     return { t: 'imm', expr: parseExpr(s), src: s };
@@ -304,377 +329,32 @@ const parseOperand = (s: string): Operand => {
 // ================== //
 //  Pseudo / forms    //
 // ================== //
-/*
-    expand(mn, ops, ctx) returns a list of real instructions:
-        [ [name, [operand, ...], extraBits?], ... ]
+export type Real = [string, Operand[], number?];
 
-    ctx.val(op)    -> numeric value of an imm / mem offset (0 in pass 1 if unknown)
-    ctx.isLong(op) -> pass 1 decides between the short and the long encoding
-                      (unknown values = long), pass 2 replays the decision
-*/
-type Real = [string, Operand[], number?];
-
-interface Ctx {
+export interface Ctx {
     val(op: Operand, allowFloat?: boolean): number;
     isLong(op: Operand, compute: () => boolean): boolean;
 }
 
-const R = (n: number): RegOp => ({ t: 'reg', n });
-const F = (n: number): FregOp => ({ t: 'freg', n });
-const I = (v: number): ImmOp => ({ t: 'imm', v });
-const M = (v: number, base: number): MemOp => ({ t: 'mem', v, base });
+export const R = (n: number): RegOp => ({ t: 'reg', n });
+export const F = (n: number): FregOp => ({ t: 'freg', n });
+export const I = (v: number): ImmOp => ({ t: 'imm', v });
+export const M = (v: number, base: number): MemOp => ({ t: 'mem', v, base });
 
-const isReg = (o?: Operand): o is RegOp => !!o && o.t === 'reg';
-const isFreg = (o?: Operand): o is FregOp => !!o && o.t === 'freg';
-const isImm = (o?: Operand): o is ImmOp => !!o && o.t === 'imm';
-const isMem = (o?: Operand): o is MemOp => !!o && o.t === 'mem';
+export const isReg = (o?: Operand): o is RegOp => !!o && o.t === 'reg';
+export const isFreg = (o?: Operand): o is FregOp => !!o && o.t === 'freg';
+export const isImm = (o?: Operand): o is ImmOp => !!o && o.t === 'imm';
+export const isMem = (o?: Operand): o is MemOp => !!o && o.t === 'mem';
 
-const SIGNED_IMM: Record<string, string> = { addi: 'add', addiu: 'addu', slti: 'slt', sltiu: 'sltu' };
-const LOGIC_IMM: Record<string, string> = { andi: 'and', ori: 'or', xori: 'xor' };
-const R_TO_IMM: Record<string, string> = { add: 'addi', addu: 'addiu', slt: 'slti', sltu: 'sltiu', and: 'andi', or: 'ori', xor: 'xori' };
-const MEM_OPS = ['lb', 'lbu', 'lh', 'lhu', 'lw', 'lwl', 'lwr', 'll', 'sb', 'sh', 'sw', 'swl', 'swr', 'sc',
-                 'lwc1', 'swc1', 'ldc1', 'sdc1'];
-const MEM_ALIAS: Record<string, string> = { 'l.s': 'lwc1', 's.s': 'swc1', 'l.d': 'ldc1', 's.d': 'sdc1' };
-const BRANCH_CMP: Record<string, [string, boolean, string]> = {
-    //        slt kind, swap operands, branch if $at != 0
-    blt:  ['slt',  false, 'bne'], bltu: ['sltu', false, 'bne'],
-    bgt:  ['slt',  true,  'bne'], bgtu: ['sltu', true,  'bne'],
-    ble:  ['slt',  true,  'beq'], bleu: ['sltu', true,  'beq'],
-    bge:  ['slt',  false, 'beq'], bgeu: ['sltu', false, 'beq'],
-};
-
-function want(cond: unknown, msg: string): asserts cond {
+export function want(cond: unknown, msg: string): asserts cond {
     if (!cond) throw new AsmError(msg);
 }
 
-/**
- * @desc: Loads a 32 bits constant into register rd (1 or 2 instructions)
-*/
-const loadImm = (rd: number, op: Operand, ctx: Ctx, useAt = true): Real[] => {
-    const v = ctx.val(op) | 0;
-    const long = ctx.isLong(op, () => !(fitsS16(v) || fitsU16(v) || lo16(v) === 0));
-    if (!long) {
-        if (fitsS16(v)) return [['addiu', [R(rd), R(ZERO), I(v)]]];
-        if (fitsU16(v)) return [['ori', [R(rd), R(ZERO), I(v)]]];
-        return [['lui', [R(rd), I(hi16(v))]]];
-    }
-    const tmp = useAt ? AT : rd;
-    return [['lui', [R(tmp), I(hi16(v))]], ['ori', [R(rd), R(tmp), I(lo16(v))]]];
-};
-
-/**
- * @desc: Returns [regNumber, prefixInstructions] for an operand that may be
- *        a register or an immediate (immediates are loaded into $at)
-*/
-const asReg = (op: Operand, ctx: Ctx): [number, Real[]] => {
-    if (isReg(op)) return [op.n, []];
-    want(isImm(op), `invalid operand "${op.src || '?'}"`);
-    return [AT, loadImm(AT, op, ctx)];
-};
-
-/**
- * @desc: Memory access with any addressing mode (label, label+k, k($r), label($r)...)
-*/
-const memAccess = (mn: string, rt: Operand, addr: Operand, ctx: Ctx): Real[] => {
-    if (isMem(addr) && addr.expr === null) return [[mn, [rt, M(0, addr.base)]]];
-    want(isMem(addr) || isImm(addr), `invalid address for "${mn}"`);
-    const base = isMem(addr) ? addr.base : ZERO;
-    const v = ctx.val(addr) | 0;
-    const long = ctx.isLong(addr, () => !fitsS16(v));
-    if (!long) return [[mn, [rt, M(v, base)]]];
-    const out: Real[] = [['lui', [R(AT), I(hiAdj(v))]]];
-    if (base !== ZERO) out.push(['addu', [R(AT), R(AT), R(base)]]);
-    out.push([mn, [rt, M(loS(v), AT)]]);
-    return out;
-};
-
-/**
- * @desc: Expands a statement into real instructions
-*/
-const expand = (mn: string, ops: Operand[], ctx: Ctx): Real[] => {
-    const n = ops.length;
-    const o = ops;
-
-    // ---- Memory operations (all addressing modes) ----
-    if (mn in MEM_ALIAS) mn = MEM_ALIAS[mn];
-    if (MEM_OPS.includes(mn)) {
-        want(n === 2, `"${mn}" expects 2 operands`);
-        const fp = ['lwc1', 'swc1', 'ldc1', 'sdc1'].includes(mn);
-        want(fp ? isFreg(o[0]) : isReg(o[0]), `"${mn}" first operand must be a ${fp ? 'float' : 'general'} register`);
-        return memAccess(mn, o[0], o[1], ctx);
-    }
-
-    switch (mn) {
-        // ---- Data movement ----
-        case 'nop': return [['sll', [R(0), R(0), I(0)]]];
-        case 'move':
-            want(n === 2 && isReg(o[0]) && isReg(o[1]), '"move" expects 2 registers');
-            return [['addu', [o[0], R(ZERO), o[1]]]];
-        case 'li': {
-            const [d, v] = o;
-            want(n === 2 && isReg(d) && isImm(v), '"li" expects a register and an immediate');
-            return loadImm(d.n, v, ctx);
-        }
-        case 'la': {
-            const [d, a] = o;
-            want(n === 2 && isReg(d), '"la" expects a register and an address');
-            if (isMem(a)) {
-                const v = a.expr ? ctx.val(a) | 0 : 0;
-                const long = ctx.isLong(a, () => !fitsS16(v));
-                if (!long) return [['addiu', [d, R(a.base), I(v)]]];
-                return [['lui', [R(AT), I(hi16(v))]], ['ori', [R(AT), R(AT), I(lo16(v))]],
-                        ['addu', [d, R(AT), R(a.base)]]];
-            }
-            want(isImm(a), '"la" expects an address');
-            const v = ctx.val(a) | 0;
-            return [['lui', [R(AT), I(hi16(v))]], ['ori', [d, R(AT), I(lo16(v))]]];
-        }
-        case 'li.s': case 'li.d': {
-            const [d, v] = o;
-            want(n === 2 && isFreg(d) && isImm(v), `"${mn}" expects a float register and a number`);
-            const val = ctx.val(v, true);
-            const buf = new DataView(new ArrayBuffer(8));
-            if (mn === 'li.s') {
-                buf.setFloat32(0, val);
-                const w = buf.getUint32(0);
-                return [['lui', [R(AT), I(hi16(w))]], ['ori', [R(AT), R(AT), I(lo16(w))]], ['mtc1', [R(AT), d]]];
-            }
-            want(d.n % 2 === 0, '"li.d" needs an even float register');
-            buf.setFloat64(0, val);
-            const h = buf.getUint32(0), l = buf.getUint32(4);
-            return [['lui', [R(AT), I(hi16(l))]], ['ori', [R(AT), R(AT), I(lo16(l))]], ['mtc1', [R(AT), d]],
-                    ['lui', [R(AT), I(hi16(h))]], ['ori', [R(AT), R(AT), I(lo16(h))]], ['mtc1', [R(AT), F(d.n + 1)]]];
-        }
-
-        // ---- Arithmetic / logic ----
-        case 'neg': case 'negu':
-            want(n === 2 && isReg(o[0]) && isReg(o[1]), `"${mn}" expects 2 registers`);
-            return [[mn === 'neg' ? 'sub' : 'subu', [o[0], R(ZERO), o[1]]]];
-        case 'not':
-            want(n === 2 && isReg(o[0]) && isReg(o[1]), '"not" expects 2 registers');
-            return [['nor', [o[0], o[1], R(ZERO)]]];
-        case 'abs':
-            want(n === 2 && isReg(o[0]) && isReg(o[1]), '"abs" expects 2 registers');
-            return [['sra', [R(AT), o[1], I(31)]], ['xor', [o[0], o[1], R(AT)]], ['subu', [o[0], o[0], R(AT)]]];
-        case 'subi': case 'subiu': {
-            const imm = o[2];
-            want(n === 3 && isReg(o[0]) && isReg(o[1]) && isImm(imm) && imm.expr, `"${mn}" expects rd, rs, imm`);
-            const neg: ImmOp = { t: 'imm', expr: { k: 'un', op: '-', e: imm.expr }, src: imm.src };
-            return expand(mn === 'subi' ? 'addi' : 'addiu', [o[0], o[1], neg], ctx);
-        }
-        case 'mul': {
-            if (n === 3 && isReg(o[2])) break;  // real SPECIAL2 mul
-            want(n === 3 && isReg(o[0]) && isReg(o[1]), '"mul" expects rd, rs, rt|imm');
-            const [r, pre] = asReg(o[2], ctx);
-            return [...pre, ['mul', [o[0], o[1], R(r)]]];
-        }
-        case 'div': case 'divu': case 'rem': case 'remu': {
-            if (n === 2 && (mn === 'div' || mn === 'divu')) break;  // real instruction
-            want(n === 3 && isReg(o[0]) && isReg(o[1]), `"${mn}" expects rd, rs, rt|imm`);
-            const real = mn.endsWith('u') ? 'divu' : 'div';
-            const [r, pre] = asReg(o[2], ctx);
-            return [...pre, [real, [o[1], R(r)]], [mn.startsWith('rem') ? 'mfhi' : 'mflo', [o[0]]]];
-        }
-        case 'mulo': case 'mulou':
-            want(n === 3 && isReg(o[0]) && isReg(o[1]) && isReg(o[2]), `"${mn}" expects 3 registers`);
-            return [[mn === 'mulo' ? 'mult' : 'multu', [o[1], o[2]]], ['mflo', [o[0]]]];
-        case 'rol': case 'ror': {
-            want(n === 3 && isReg(o[0]) && isReg(o[1]), `"${mn}" expects rd, rs, rt|imm`);
-            if (isImm(o[2])) {
-                const s = ctx.val(o[2]) & 31;
-                const [a, b] = mn === 'rol' ? ['srl', 'sll'] : ['sll', 'srl'];
-                return [[a, [R(AT), o[1], I((32 - s) & 31)]], [b, [o[0], o[1], I(s)]], ['or', [o[0], o[0], R(AT)]]];
-            }
-            const [a, b] = mn === 'rol' ? ['srlv', 'sllv'] : ['sllv', 'srlv'];
-            return [['subu', [R(AT), R(ZERO), o[2]]], [a, [R(AT), o[1], R(AT)]], [b, [o[0], o[1], o[2]]], ['or', [o[0], o[0], R(AT)]]];
-        }
-
-        // ---- Set pseudo instructions ----
-        case 'seq': case 'sne': case 'sgt': case 'sgtu': case 'sge': case 'sgeu': case 'sle': case 'sleu': {
-            want(n === 3 && isReg(o[0]) && isReg(o[1]), `"${mn}" expects rd, rs, rt|imm`);
-            const [r, pre] = asReg(o[2], ctx);
-            const u = mn.endsWith('u') ? 'sltu' : 'slt';
-            const d = o[0], s = o[1], t = R(r);
-            switch (mn) {
-                case 'seq': return [...pre, ['xor', [d, s, t]], ['sltiu', [d, d, I(1)]]];
-                case 'sne': return [...pre, ['xor', [d, s, t]], ['sltu', [d, R(ZERO), d]]];
-                case 'sgt': case 'sgtu': return [...pre, [u, [d, t, s]]];
-                case 'sge': case 'sgeu': return [...pre, [u, [d, s, t]], ['xori', [d, d, I(1)]]];
-                default: return [...pre, [u, [d, t, s]], ['xori', [d, d, I(1)]]];   // sle, sleu
-            }
-        }
-
-        // ---- Branches ----
-        case 'b':
-            want(n === 1 && isImm(o[0]), '"b" expects a label');
-            return [['beq', [R(ZERO), R(ZERO), o[0]]]];
-        case 'bal':
-            want(n === 1 && isImm(o[0]), '"bal" expects a label');
-            return [['bgezal', [R(ZERO), o[0]]]];
-        case 'beqz': case 'bnez':
-            want(n === 2 && isReg(o[0]) && isImm(o[1]), `"${mn}" expects a register and a label`);
-            return [[mn === 'beqz' ? 'beq' : 'bne', [o[0], R(ZERO), o[1]]]];
-        case 'beq': case 'bne': {
-            if (n === 3 && isReg(o[1])) break;
-            want(n === 3 && isReg(o[0]) && isImm(o[1]) && isImm(o[2]), `"${mn}" expects rs, rt|imm, label`);
-            const [r, pre] = asReg(o[1], ctx);
-            return [...pre, [mn, [o[0], R(r), o[2]]]];
-        }
-        case 'blt': case 'bltu': case 'bgt': case 'bgtu': case 'ble': case 'bleu': case 'bge': case 'bgeu': {
-            want(n === 3 && isReg(o[0]) && isImm(o[2]), `"${mn}" expects rs, rt|imm, label`);
-            const [kind, swap, br] = BRANCH_CMP[mn];
-            const [r, pre] = asReg(o[1], ctx);
-            const [a, b] = swap ? [R(r), o[0]] : [o[0], R(r)];
-            return [...pre, [kind, [R(AT), a, b]], [br, [R(AT), R(ZERO), o[2]]]];
-        }
-
-        // ---- Jumps with register operands ----
-        case 'j':
-            if (n === 1 && isReg(o[0])) return [['jr', [o[0]]]];
-            break;
-        case 'jal': case 'jalr':
-            if (n === 1 && isReg(o[0])) return [['jalr', [R(RA), o[0]]]];
-            break;
-
-        // ---- Shifts with a register amount ----
-        case 'sll': case 'srl': case 'sra':
-            if (n === 3 && isReg(o[2])) return [[mn + 'v', [o[0], o[1], o[2]]]];
-            break;
-
-        case 'break':
-            if (n === 1 && isImm(o[0])) return [['break', [], (ctx.val(o[0]) & 0xfffff) << 6]];
-            break;
-    }
-
-    // ---- Two operand shorthand:  add $t0, $t1  ->  add $t0, $t0, $t1 ----
-    const entry = BY_NAME[mn];
-    if (entry && entry.ops.length === 3 && n === 2 && /^[dt],[st],[ti]$/.test(entry.ops.join(','))) {
-        return expand(mn, [o[0], o[0], o[1]], ctx);
-    }
-
-    // ---- Immediate forms that do not fit in 16 bits ----
-    if (mn in SIGNED_IMM || mn in LOGIC_IMM) {
-        const imm = o[2];
-        want(n === 3 && isReg(o[0]) && isReg(o[1]) && isImm(imm), `"${mn}" expects rt, rs, imm`);
-        const v = ctx.val(imm) | 0;
-        const fits = mn in SIGNED_IMM ? fitsS16(v) : fitsU16(v);
-        if (!ctx.isLong(imm, () => !fits)) return [[mn, [o[0], o[1], I(v)]]];
-        const real = SIGNED_IMM[mn] || LOGIC_IMM[mn];
-        return [...loadImm(AT, imm, ctx), [real, [o[0], o[1], R(AT)]]];
-    }
-
-    // ---- R-type used with an immediate:  add $t0, $t1, 5 ----
-    if (n === 3 && isReg(o[0]) && isReg(o[1]) && isImm(o[2])) {
-        if (mn in R_TO_IMM) return expand(R_TO_IMM[mn], o, ctx);
-        if (mn === 'sub' || mn === 'subu') return expand(mn === 'sub' ? 'subi' : 'subiu', o, ctx);
-        if (mn === 'nor') {
-            const [r, pre] = asReg(o[2], ctx);
-            return [...pre, ['nor', [o[0], o[1], R(r)]]];
-        }
-    }
-
-    if (!entry) throw new AsmError(`unknown instruction "${mn}"`);
-    return [[mn, o.map(op => resolve(op, ctx))]];
-};
-
-const resolve = (op: Operand, ctx: Ctx): Operand => {
+export const resolve = (op: Operand, ctx: Ctx): Operand => {
     if (op.expr === undefined) return op;   // Already resolved
     if (isImm(op)) return I(ctx.val(op));
     if (isMem(op)) return M(op.expr ? ctx.val(op) : 0, op.base);
     return op;
-};
-
-// ================== //
-//  Encoder           //
-// ================== //
-// Is the float operand `spec` of `mn` a double (even register pair)?
-const isDoubleOperand = (mn: string, spec: string): boolean => {
-    if (mn === 'ldc1' || mn === 'sdc1') return true;
-    const cvt = /^cvt\.([sdw])\.([sdw])$/.exec(mn);
-    if (cvt) return (spec === 'D' ? cvt[1] : cvt[2]) === 'd';
-    if (/^(round|trunc|ceil|floor)\.w\.d$/.test(mn)) return spec !== 'D';
-    return mn.endsWith('.d');
-};
-
-/**
- * @desc: Encodes a real instruction into a 32 bits word
-*/
-export const encode = (mn: string, ops: Operand[], pc: number, extra = 0): number => {
-    const e = BY_NAME[mn];
-    if (!e) throw new AsmError(`unknown instruction "${mn}"`);
-    if (ops.length !== e.ops.length) {
-        throw new AsmError(`"${mn}" expects ${e.ops.length} operand(s): ${e.ops.join(', ').replace(/m/, 'offset(base)') || 'none'}`);
-    }
-    let w = e.base | extra;
-    const value = (op: ImmOp | MemOp) => op.v as number;
-
-    e.ops.forEach((spec, i) => {
-        const op = ops[i];
-        const bad = (what: string) => new AsmError(`"${mn}" operand ${i + 1} must be ${what}`);
-        switch (spec) {
-            case 'd': case 's': case 't': case 'C': {
-                if (!isReg(op)) throw bad('a general register');
-                w |= op.n << { d: 11, s: 21, t: 16, C: 11 }[spec];
-                break;
-            }
-            case 'D': case 'S': case 'T': {
-                if (!isFreg(op)) throw bad('a float register ($f0-$f31)');
-                if (isDoubleOperand(mn, spec) && op.n % 2) throw new AsmError(`"${mn}" needs even float registers ($f${op.n})`);
-                w |= op.n << { D: 6, S: 11, T: 16 }[spec];
-                break;
-            }
-            case 'h': {
-                if (!isImm(op)) throw bad('a shift amount');
-                const v = value(op);
-                if (v < 0 || v > 31) throw new AsmError(`shift amount ${v} out of range (0..31)`);
-                w |= v << 6;
-                break;
-            }
-            case 'i': {
-                if (!isImm(op)) throw bad('an immediate');
-                const v = value(op);
-                if (!fitsS16(v)) throw new AsmError(`immediate ${v} out of range (-32768..32767)`);
-                w |= v & 0xffff;
-                break;
-            }
-            case 'u': {
-                if (!isImm(op)) throw bad('an immediate');
-                const v = value(op);
-                if (!fitsU16(v) && !fitsS16(v)) throw new AsmError(`immediate ${v} out of range (0..65535)`);
-                w |= v & 0xffff;
-                break;
-            }
-            case 'm': {
-                if (!isMem(op)) throw bad('a memory operand offset(base)');
-                const v = value(op);
-                if (!fitsS16(v)) throw new AsmError(`offset ${v} out of range (-32768..32767)`);
-                w |= (op.base << 21) | (v & 0xffff);
-                break;
-            }
-            case 'L': {
-                if (!isImm(op)) throw bad('a label');
-                const v = value(op);
-                const off = ((v >>> 0) - (pc + 4)) / 4;
-                if (!Number.isInteger(off)) throw new AsmError(`branch target ${hex(v)} is not word aligned`);
-                if (off < -32768 || off > 32767) throw new AsmError(`branch target ${hex(v)} out of range`);
-                w |= off & 0xffff;
-                break;
-            }
-            case 'J': {
-                if (!isImm(op)) throw bad('a label');
-                const t = value(op) >>> 0;
-                if (t & 3) throw new AsmError(`jump target ${hex(t)} is not word aligned`);
-                if ((t & 0xf0000000) !== ((pc + 4) & 0xf0000000)) throw new AsmError(`jump target ${hex(t)} out of range`);
-                w |= (t >>> 2) & 0x03ffffff;
-                break;
-            }
-        }
-    });
-
-    // clz / clo need rt == rd
-    if (mn === 'clz' || mn === 'clo') w |= ((w >>> 11) & 31) << 16;
-
-    return w >>> 0;
 };
 
 // ================== //
@@ -683,15 +363,11 @@ export const encode = (mn: string, ops: Operand[], pc: number, extra = 0): numbe
 const DIRECTIVES = new Set([
     '.data', '.text', '.kdata', '.ktext', '.rdata', '.sdata',
     '.word', '.half', '.hword', '.short', '.2byte', '.4byte', '.byte', '.float', '.double',
-    '.ascii', '.asciiz', '.string', '.space', '.skip', '.align', '.balign',
+    '.ascii', '.asciiz', '.asciz', '.string', '.space', '.skip', '.zero', '.align', '.balign', '.p2align',
     '.globl', '.global', '.extern', '.ent', '.end', '.set', '.eqv', '.equ', '.file', '.section',
+    '.option', '.type', '.size', '.attribute',
 ]);
 const DATA_SIZE: Record<string, number> = { '.word': 4, '.4byte': 4, '.half': 2, '.hword': 2, '.short': 2, '.2byte': 2, '.byte': 1, '.float': 4, '.double': 8 };
-const STARTUP = [
-    // SPIM like start up code: it calls main and exits when main returns
-    'lw $a0, 0($sp)', 'addiu $a1, $sp, 4', 'addiu $a2, $a1, 4', 'sll $v0, $a0, 2',
-    'addu $a2, $a2, $v0', 'jal main', 'nop', 'li $v0, 10', 'syscall',
-];
 
 type Evaluator = (e: Expr, allowFloat?: boolean) => number;
 
@@ -730,10 +406,11 @@ export class Assembler {
     static SEGMENT = SEGMENT;
     static AsmError = AsmError;
     static parseExpr = parseExpr;
-    static encode = encode;
+
+    constructor(public arch: Arch) {}
 
     /**
-     * @desc: Assembles MIPS source code
+     * @desc: Assembles the source code with the architecture of this assembler
      * @param: source {:string} - The assembly code
      * @param: options {:object} - { filename, startup: auto|true|false }
      * @return: {:Program}
@@ -775,7 +452,7 @@ export class Assembler {
         const hasMain = stmts.some(s => s.labels.includes('main'));
         const startup = options.startup === undefined || options.startup === 'auto' ? hasMain : !!options.startup;
         if (startup) {
-            const boot: Statement[] = STARTUP.map((src) => {
+            const boot: Statement[] = this.arch.startup.map((src) => {
                 const m = /^(\S+)\s*(.*)$/.exec(src)!;
                 return { line: 0, raw: src, labels: [], mn: m[1], ops: splitOperands(m[2]), rest: m[2], boot: true };
             });
@@ -814,6 +491,10 @@ export class Assembler {
                 case 'un': {
                     const v = evalExpr(e.e, strict, allowFloat);
                     return e.op === '-' ? -v : e.op === '~' ? ~v : v;
+                }
+                case 'fn': {
+                    const v = evalExpr(e.e, strict, false);
+                    return e.name === 'hi' ? this.arch.hi(v) : this.arch.lo(v);
                 }
                 case 'bin': {
                     const a = evalExpr(e.l, strict, allowFloat), b = evalExpr(e.r, strict, allowFloat);
@@ -861,7 +542,7 @@ export class Assembler {
         });
 
         const parseOps = (stmt: Statement): Operand[] => {
-            if (!stmt.parsed) stmt.parsed = stmt.ops.map(parseOperand);
+            if (!stmt.parsed) stmt.parsed = stmt.ops.map(op => parseOperand(op, this.arch));
             return stmt.parsed;
         };
 
@@ -894,7 +575,7 @@ export class Assembler {
                 st.segment = cur;
                 st.addr = seg[cur];
                 st.decisions = [];
-                st.size = expand(st.mn, parseOps(st), makeCtx(1, st)).length;
+                st.size = this.arch.expand(st.mn, parseOps(st), makeCtx(1, st)).length;
                 seg[cur] += 4 * st.size;
             } catch (e) {
                 fail(e, st.line);
@@ -921,14 +602,14 @@ export class Assembler {
                 }
                 st.cursor = 0;
                 const ctx = makeCtx(2, st);
-                const out = expand(st.mn, parseOps(st), ctx);
+                const out = this.arch.expand(st.mn, parseOps(st), ctx);
                 if (out.length !== st.size) throw new AsmError('internal error: pseudo instruction size changed');
                 out.forEach(([mn, ops, extra], k) => {
                     const pc = st.addr! + 4 * k;
-                    const word = encode(mn, ops.map(op => resolve(op, ctx)), pc, extra);
+                    const word = this.arch.encode(mn, ops.map(op => resolve(op, ctx)), pc, extra);
                     text.push({
                         addr: pc, word,
-                        basic: disassemble(word, pc),
+                        basic: this.arch.disassemble(word, pc),
                         source: k === 0 ? st.raw : '',
                         line: st.line,
                         first: k === 0,
@@ -956,6 +637,7 @@ export class Assembler {
 
         return {
             ok: errors.length === 0,
+            arch: this.arch.name,
             filename,
             errors: errors.map(e => ({ ...e, file: filename })),
             warnings: warnings.map(w => ({ ...w, file: filename })),
@@ -1013,10 +695,12 @@ export class Assembler {
                 s.consts[name] = s.evalExpr(parseExpr(value), true);
                 return;
             }
-            case '.align': case '.balign': {
+            case '.option': case '.type': case '.size': case '.attribute':
+                return;
+            case '.align': case '.balign': case '.p2align': {
                 if (!ops.length) throw new AsmError(`"${d}" expects a number`);
                 const n = s.evalExpr(parseExpr(ops[0]), true);
-                const bytes = d === '.align' ? 1 << n : n;
+                const bytes = d === '.balign' ? n : 1 << n;
                 if (n < 0 || bytes > 1 << 16) throw new AsmError(`invalid alignment ${n}`);
                 if (bytes > 1) s.align(bytes);
                 return;
@@ -1066,7 +750,7 @@ export class Assembler {
             return;
         }
 
-        if (d === '.ascii' || d === '.asciiz' || d === '.string') {
+        if (d === '.ascii' || d === '.asciiz' || d === '.asciz' || d === '.string') {
             if (!ops.length) throw new AsmError(`"${d}" expects a string`);
             const bytes: number[] = [];
             ops.forEach(op => {
@@ -1081,7 +765,7 @@ export class Assembler {
             return;
         }
 
-        if (d === '.space' || d === '.skip') {
+        if (d === '.space' || d === '.skip' || d === '.zero') {
             if (!ops.length) throw new AsmError(`"${d}" expects a size`);
             const n = s.evalExpr(parseExpr(ops[0]), true);
             if (n < 0 || n > 1 << 24) throw new AsmError(`invalid size ${n}`);

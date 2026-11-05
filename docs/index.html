@@ -29,11 +29,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&family=Red+Hat+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
     <!-- CSS: src/scss -> style.css (npm run build) -->
-    <link rel="stylesheet" href="./style.css?v=21f3108170">
+    <link rel="stylesheet" href="./style.css?v=837f952766">
     <!-- JS: src/vendor + src/ts -> script.js (npm run build) -->
-    <script src="./script.js?v=4057e8e75b"></script>
+    <script src="./script.js?v=d3f2fb2646"></script>
     <!-- TITTLE -->
-    <title>SpimHub - MIPS Assembly IDE</title>
+    <title>SpimHub - MIPS &amp; RISC-V Assembly IDE</title>
 </head>
 <body>
     <header class="bg-secondary d-flex">
@@ -53,7 +53,7 @@
                     </li>
                     <hr>
                     <li>
-                        <a href="https://github.com/ZhengLinLei/spimhub-depr/blob/main/LICENSE" target="_blank">
+                        <a href="https://github.com/ZhengLinLei/spimhub/blob/main/LICENSE" target="_blank">
                             <span>[license]</span>
                         </a>
                     </li>
@@ -63,7 +63,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="javascript:set_theme('toggle')">
+                        <a href="javascript:SETTINGS.open()">
                             <span>[settings]</span>
                         </a>
                     </li>
@@ -71,7 +71,7 @@
                     <li>
                         <a href="#">
                             <span>[version]</span>
-                            <span class="muted">v1.0.0</span>
+                            <span class="muted">v1.1.0</span>
                         </a>
                     </li>
                     <li>
@@ -254,7 +254,7 @@
                         </li>
                         <hr>
                         <li>
-                            <a href="javascript:html_find()">
+                            <a href="javascript:FINDER.open()">
                                 <span>[find]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + F</span>
@@ -263,11 +263,39 @@
                             </a>
                         </li>
                         <li>
-                            <a href="javascript:html_find(true)">
+                            <a href="javascript:FINDER.open(true)">
                                 <span>[replace]</span>
                                 <span class="muted">
                                     <span class="__s-win">Alt + F</span>
                                     <span class="__s-mac">⌥ + F</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript:SEARCH.open()">
+                                <span>[search in files]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Ctrl + ⇧ + F</span>
+                                    <span class="__s-mac">⌘ + ⇧ + F</span>
+                                </span>
+                            </a>
+                        </li>
+                        <hr>
+                        <li>
+                            <a href="javascript:UX.goto_line()">
+                                <span>[go to line]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Ctrl + G</span>
+                                    <span class="__s-mac">⌘ + G</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript:UX.toggle_comment()">
+                                <span>[toggle comment]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Ctrl + /</span>
+                                    <span class="__s-mac">⌘ + /</span>
                                 </span>
                             </a>
                         </li>
@@ -305,15 +333,39 @@
                         </li>
                         <hr>
                         <li>
-                            <a href="javascript:toggle_opt(1, 'search')">
-                                <span>[search]</span>
-                                <span class="muted"></span>
+                            <a href="javascript:UX.palette()">
+                                <span>[command palette]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Ctrl + ⇧ + P</span>
+                                    <span class="__s-mac">⌘ + ⇧ + P</span>
+                                </span>
                             </a>
                         </li>
                         <li>
-                            <a href="javascript:toggle_opt(1, 'extensions')">
+                            <a href="javascript:SEARCH.open()">
+                                <span>[search]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Ctrl + ⇧ + F</span>
+                                    <span class="__s-mac">⌘ + ⇧ + F</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript:EXTENSIONS.open()">
                                 <span>[extensions]</span>
-                                <span class="muted"></span>
+                                <span class="muted">
+                                    <span class="__s-win">Alt + ⇧ + X</span>
+                                    <span class="__s-mac">⌥  + ⇧ + X</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript:SETTINGS.open()">
+                                <span>[settings]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Ctrl + ,</span>
+                                    <span class="__s-mac">⌘ + ,</span>
+                                </span>
                             </a>
                         </li>
                         <li>
@@ -322,6 +374,15 @@
                                 <span class="muted">
                                     <span class="__s-win">Alt + D</span>
                                     <span class="__s-mac">⌥  + D</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript:PIPELINE.open()">
+                                <span>[pipeline]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Alt + L</span>
+                                    <span class="__s-mac">⌥  + L</span>
                                 </span>
                             </a>
                         </li>
@@ -388,7 +449,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="https://github.com/ZhengLinLei/spimhub-depr/archive/refs/heads/main.zip">
+                            <a href="https://github.com/ZhengLinLei/spimhub/archive/refs/heads/spimhub.zip">
                                 <span>[download spimhub]</span>
                                 <span class="muted"></span>
                             </a>
@@ -400,8 +461,9 @@
         <div class="right">
             <div class="d-flex">
                 <a href="javascript:toggle_opt(-1)">[files]</a>
-                <a href="javascript:toggle_opt(-1, 'search')">[search]</a>
-                <a href="javascript:toggle_opt(-1, 'extensions')">[extensions]</a>
+                <a href="javascript:SEARCH.toggle()">[search]</a>
+                <a href="javascript:EXTENSIONS.toggle()">[extensions]</a>
+                <a href="javascript:SETTINGS.open()">[settings]</a>
                 <a href="javascript:toggle_terminal();">[terminal]</a>
             </div>
         </div>
@@ -418,6 +480,15 @@
                         <span class="muted">
                             <span class="__s-win">Alt + R</span>
                             <span class="__s-mac">⌥  + R</span>
+                        </span>
+                    </a>
+                </div>
+                <div class="pipeline">
+                    <a class="header-padding" href="javascript:PIPELINE.open()">
+                        <span>[pipeline]</span>
+                        <span class="muted">
+                            <span class="__s-win">Alt + L</span>
+                            <span class="__s-mac">⌥  + L</span>
                         </span>
                     </a>
                 </div>
@@ -649,40 +720,24 @@
             <div id="opt-search">
                 <div class="search header-padding both-side explorer-header d-flex align-center">
                     <span>[search]</span>
-                    <div class="d-flex">
-                        <a href="javascript:void(0)" flag="insensitive" class="flag-case muted" title="Match Case">[\i]</a>
-                        <a href="javascript:void(0)" flag="regex" class="flag-case muted" title="Regular Expresion">[\*]</a>
+                    <div class="d-flex search-flags">
+                        <a href="javascript:SEARCH.flag('case')" flag="case" class="flag muted" title="Match case">[Aa]</a>
+                        <a href="javascript:SEARCH.flag('word')" flag="word" class="flag muted" title="Whole word">[ab]</a>
+                        <a href="javascript:SEARCH.flag('regex')" flag="regex" class="flag muted" title="Regular expression">[.*]</a>
                     </div>
                 </div>
-                <div class="explorer">
-                    <div>
-                        <input type="text" id="content-search-file" placeholder="search">
-                        <input type="text" id="content-replace-file" placeholder="replace">
+                <div class="explorer search-panel">
+                    <div class="search-inputs">
+                        <input type="text" id="search-query" placeholder="search in all files" spellcheck="false" autocomplete="off">
+                        <input type="text" id="search-replace" placeholder="replace" spellcheck="false" autocomplete="off">
+                        <input type="text" id="search-include" placeholder="files: *.asm, /examples/riscv/" spellcheck="false" autocomplete="off">
                     </div>
-                    <div class="d-flex both-side find-replace-btn">
-                        <a id="content-find-btn" class="bg-success">[find]</a>
-                        <a id="content-replace-btn" class="replace-all">[replace all]</a>
+                    <div class="d-flex both-side search-actions">
+                        <a href="javascript:SEARCH.replace_all()" class="search-replace-all" title="Replace every match (Ctrl + Alt + Enter)">[replace all]</a>
+                        <a href="javascript:SEARCH.collapse()" class="search-collapse muted" title="Collapse / expand all">[collapse]</a>
                     </div>
-                    <hr>
-                    <div class="find-replace-btn">
-                        <a id="content-next-btn" class="replace-next">[replace next]</a>
-                    </div>
-                    <hr>
-                    <div class="explorer-main" id="search-manager">
-                        <div class="header-padding both-side">
-                            <span>[result]</span>
-                            <div class="d-flex">
-                                <span class="muted">[<span class="file-occurences">0</span> files]</span>
-                            </div>
-                        </div>
-                        <div id="search-manager-ui">
-                            <div class="level">
-                                <ul class="file-occurences-list">
-                                    <!-- FILES OCCURENCES -->        
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="search-summary muted">type to search in every file of the project</div>
+                    <div id="search-results" tabindex="-1"></div>
                 </div>
             </div>
             <div id="opt-extensions">
@@ -692,51 +747,44 @@
                         <a>[...]</a>
                         <ul class="pop-menu">
                             <li>
-                                <a>
-                                    <span>[enabled]</span>
-                                    <span class="muted">[0]</span>
+                                <a href="javascript:EXTENSIONS.refresh()">
+                                    <span>[refresh]</span>
+                                    <span class="muted ext-count-servers">[0 servers]</span>
                                 </a>
                             </li>
                             <li>
-                                <a>
+                                <a href="javascript:EXTENSIONS.filter('installed')">
                                     <span>[installed]</span>
-                                    <span class="muted">[0]</span>
+                                    <span class="muted ext-count-installed">[0]</span>
                                 </a>
                             </li>
                             <li>
-                                <a>
-                                    <span>[enabled]</span>
-                                    <span class="muted">[0]</span>
+                                <a href="javascript:EXTENSIONS.filter('all')">
+                                    <span>[marketplace]</span>
+                                    <span class="muted ext-count-all">[0]</span>
                                 </a>
                             </li>
                             <hr>
                             <li>
-                                <a>
-                                    <span>[settings]</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a>
-                                    <span>[marketplace]</span>
+                                <a href="javascript:SETTINGS.open('servers')">
+                                    <span>[servers]</span>
+                                    <span class="muted">settings</span>
                                 </a>
                             </li>
                         </ul>
                     </div>
                 </div>
-                <div class="explorer">
+                <div class="explorer ext-panel">
                     <div>
-                        <input type="text" placeholder="search">
+                        <input type="text" id="ext-search" placeholder="search extensions" spellcheck="false" autocomplete="off">
+                    </div>
+                    <div class="d-flex ext-tabs">
+                        <a href="javascript:EXTENSIONS.filter('all')" class="ext-tab active" data-tab="all">[all]</a>
+                        <a href="javascript:EXTENSIONS.filter('installed')" class="ext-tab" data-tab="installed">[installed]</a>
                     </div>
                     <div class="explorer-main" id="extensions-manager">
-                        <div class="header-padding both-side">
-                            <span>[result]</span>
-                            <div class="d-flex">
-                                <span class="muted">[0 APIs]</span>
-                            </div>
-                        </div>
-                        <div class="text-center" id="extensions-manager-ui">
-                            <span class="text-error">Unable to connect marketplace server.</span>
-                        </div>
+                        <div class="ext-status muted">loading servers...</div>
+                        <ul id="extensions-list"></ul>
                     </div>
                 </div>
             </div>
@@ -821,14 +869,16 @@
             <!-- RUNNER -->
             <section id="main-runner" class="group-m">
                 <header class="cap">
-                    <div class="title"> >_ mips executer <span class="muted runner-file"></span></div>
+                    <div class="title"> >_ executer <span class="runner-arch"></span> <span class="muted runner-file"></span></div>
                     <div>
                         <div class="run d-flex">
+                            <a href="javascript:RUNNER.toggle_arch()" class="arch-toggle" title="Architecture: auto (detected), MIPS or RISC-V">[arch: auto]</a>
                             <span class="a runner-state">[idle]</span>
                             <a href="javascript:RUNNER.assemble()" class="assemble" title="Assemble the active file (Alt + Shift + A)">[assemble]</a>
                             <a href="javascript:RUNNER.reset()" class="reset" title="Reset registers and memory">[reset]</a>
                             <a href="javascript:RUNNER.stop()" class="pause" title="Pause the execution">[pause]</a>
                             <a href="javascript:RUNNER.step()" class="run-step" title="Run one instruction (F10)">[run step]</a>
+                            <a href="javascript:PIPELINE.open()" class="open-pipeline" title="5 stage pipeline (Alt + L)">[pipeline]</a>
                             <a href="javascript:RUNNER.run()" class="run-all" title="Run until a breakpoint or the end (F5)">[run all]</a>
                         </div>
                     </div>
@@ -975,6 +1025,59 @@
                     </li>
                 </ul>
             </section>
+            <!-- PIPELINE (src/ts/app/pipeline.ts) -->
+            <section id="main-pipeline" class="group-m">
+                <header class="cap">
+                    <div class="title"> >_ pipeline <span class="muted pipeline-file"></span></div>
+                    <div>
+                        <div class="run d-flex">
+                            <a href="javascript:PIPELINE.toggle_forwarding()" class="pl-forwarding" title="Forwarding (bypass) unit">[forwarding: on]</a>
+                            <a href="javascript:PIPELINE.toggle_branch()" class="pl-branch" title="Stage where branches are resolved (predict not taken)">[branch: EX]</a>
+                            <a href="javascript:PIPELINE.first()" title="First cycle">[|&lt;]</a>
+                            <a href="javascript:PIPELINE.prev()" title="Previous cycle">[&lt; cycle]</a>
+                            <span class="a pl-cycle">[cycle 0]</span>
+                            <a href="javascript:PIPELINE.next()" class="run-step" title="Next cycle (executes the instructions it needs)">[cycle &gt;]</a>
+                            <a href="javascript:PIPELINE.play()" class="pl-play" title="Animate cycle by cycle">[play]</a>
+                            <a href="javascript:PIPELINE.last()" class="run-all" title="Run the whole program">[run all]</a>
+                        </div>
+                    </div>
+                </header>
+                <main>
+                    <section class="pl-empty">
+                        <span class="muted">Assemble a MIPS or RISC-V program first: [assemble] in the runner or Alt + Shift + A.</span>
+                        <span class="muted">Try /examples/pipeline/riscv_hazards.asm</span>
+                    </section>
+                    <section class="pl-top">
+                        <div class="pl-datapath"></div>
+                        <div class="pl-side">
+                            <div class="pl-stats"></div>
+                            <div class="pl-memmap"></div>
+                        </div>
+                    </section>
+                    <section class="pl-bottom">
+                        <div class="pl-diagram table-main"></div>
+                        <div class="pl-hazards"></div>
+                    </section>
+                    <section class="pl-legend muted">
+                        <span><i class="st-IF"></i>IF fetch</span>
+                        <span><i class="st-ID"></i>ID decode / registers</span>
+                        <span><i class="st-EX"></i>EX ALU</span>
+                        <span><i class="st-MEM"></i>MEM data memory</span>
+                        <span><i class="st-WB"></i>WB write back</span>
+                        <span><i class="stall"></i>stall</span>
+                        <span><i class="flush"></i>flush</span>
+                        <span><i class="fwd-dot"></i>forwarding</span>
+                    </section>
+                </main>
+            </section>
+            <!-- SETTINGS (src/ts/app/settings.ts) -->
+            <section id="main-settings" class="group-m">
+                <header class="cap">
+                    <div class="title"> >_ settings</div>
+                </header>
+                <main class="settings-main"></main>
+            </section>
+            <!-- EXTENSIONS (src/ts/app/extensions.ts) -->
             <section id="main-extensions" class="group-m">
 
             </section>
@@ -1170,6 +1273,44 @@
             </main>
         </section>
     </footer>
+    <!-- Status bar (src/ts/app/ux.ts) -->
+    <div id="status-bar" class="no-select">
+        <div class="left">
+            <a class="sb-arch" href="javascript:RUNNER.toggle_arch()" title="Architecture (click to change)">[auto]</a>
+            <span class="sb-file"></span>
+            <span class="sb-saved"></span>
+        </div>
+        <div class="right">
+            <span class="sb-ext"></span>
+            <a class="sb-state" href="javascript:__group_h.open_group('runner')" title="Runner">[idle]</a>
+            <a class="sb-pos" href="javascript:UX.goto_line()" title="Go to line (Ctrl + G)">Ln 1, Col 1</a>
+            <span class="sb-tab">spaces: 4</span>
+            <a class="sb-palette" href="javascript:UX.palette()" title="Command palette (Ctrl + Shift + P)">[&gt;_]</a>
+        </div>
+    </div>
+    <!-- Drop files from the computer (src/ts/app/dnd.ts) -->
+    <section id="drop-zone">
+        <div class="drop-box">
+            <div class="drop-title">[drop files]</div>
+            <div class="drop-text muted"></div>
+        </div>
+    </section>
+    <!-- Command palette / go to line / confirm (src/ts/app/ux.ts) -->
+    <section id="palette" class="modal">
+        <input type="text" class="palette-input" placeholder="type a command" spellcheck="false" autocomplete="off">
+        <ul class="palette-list"></ul>
+    </section>
+    <section id="confirm" class="modal">
+        <header class="cap"><div class="confirm-title">[confirm]</div></header>
+        <main>
+            <div class="confirm-text"></div>
+            <div class="button d-flex">
+                <a class="confirm-cancel">[cancel]</a>
+                <a class="confirm-ok bg-success">[ok]</a>
+            </div>
+        </main>
+    </section>
+    <section id="toasts"></section>
     <!-- Warning -->
     <section id="warning" class="no-select">
         <span>Foldername or filename already exist.</span>

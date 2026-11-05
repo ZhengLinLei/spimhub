@@ -1,0 +1,17 @@
+{
+    "id": "confetti",
+    "name": "Confetti",
+    "version": "1.0.0",
+    "description": "Confetti when a program exits with code 0.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "main": "main.js",
+    "styles": "style.css",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "events": ["exit"],
+        "commands": ["confetti"],
+        "palette": ["confetti: celebrate"]
+    }
+}

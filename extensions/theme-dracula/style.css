@@ -1,0 +1,37 @@
+/* Dracula palette (https://draculatheme.com) for the dark theme of SpimHub.
+   Only CSS variables: every view (editor, runner, pipeline) uses them. */
+html[theme="dark"] {
+    --color-primary: #282a36;
+    --color-secondary: #21222c;
+    --color-helper: #191a21;
+    --color-helper-light: #2b2d3a;
+    --color-invert: #f8f8f2;
+    --color-invert-rgb: 248, 248, 242;
+    --color-muted: #9aa5ce;
+    --color-invert-muted: #e2e2dc;
+    --color-hover: #44475a;
+    --color-success: #50fa7b;
+    --color-success-hover: #3fd468;
+    --color-warning: #f1fa8c;
+    --color-error: #ff5555;
+
+    --code-comment: #6272a4;
+    --code-string: #f1fa8c;
+    --code-char: #f1fa8c;
+    --code-number: #bd93f9;
+    --code-operator: #ff79c6;
+    --code-keyword: #ff79c6;
+    --code-function: #50fa7b;
+    --code-variable: #ffb86c;
+
+    --stage-if: #2f3f6b;
+    --stage-id: #4b3a6e;
+    --stage-ex: #6b4a2f;
+    --stage-mem: #2e5c45;
+    --stage-wb: #6b2f4f;
+    --fwd: #50fa7b;
+    --taken: #ffb86c;
+}
+html[theme="dark"] .runner-state.bg-success,
+html[theme="dark"] .execute > a:first-child,
+html[theme="dark"] .run-all { color: #282a36 !important; }

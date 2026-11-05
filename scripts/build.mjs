@@ -4,12 +4,12 @@
         src/index.html                     ->  docs/index.html
         src/scss/style.scss                ->  docs/style.css
         src/vendor/*.js                    ┐
-        src/ts/spim (engine, bundled)      ├─> docs/script.js
+        src/ts/engine (bundled)            ├─> docs/script.js
         src/examples/*.asm (embedded)      │
         src/ts/app (GUI scripts)           ┘
         src/img/*                          ->  docs/img/*
 
-        src/ts/spim/spim.ts                ->  dist/spim.cjs   (tests)
+        src/ts/engine/spim.ts                ->  dist/spim.cjs   (tests)
         src/ts/cli/spimhub.ts              ->  dist/cli.cjs    (bin/spimhub.js)
 
     docs/ is the GitHub Pages deploy: only these files, nothing else.
@@ -34,7 +34,11 @@ const TARGET = 'es2020';
 
 // Concatenation order of docs/script.js (classic scripts sharing the global scope)
 const VENDOR = ['file_saver.js', 'lzma_worker.js', 'html2canvas.js'];
-const APP = ['lang/mips.ts', 'format.ts', 'index.ts', 'file_searcher.ts', 'runner.ts', 'terminal.ts'];
+const APP = [
+    'lang/mips.ts', 'lang/riscv.ts', 'format.ts', 'ux.ts', 'index.ts',
+    'finder.ts', 'search.ts', 'dnd.ts', 'runner.ts', 'pipeline.ts', 'terminal.ts',
+    'settings.ts', 'extensions.ts',
+];
 const IMAGES = /\.(png|ico|svg|jpe?g|gif|webp)$/i;
 
 const read = (...p) => fs.readFileSync(path.join(...p), 'utf8');
@@ -56,15 +60,21 @@ const buildJs = async () => {
 
     // Engine: ES modules bundled in an IIFE that defines the global SPIM
     const engine = await esbuild.build({
-        entryPoints: [path.join(SRC, 'ts', 'spim', 'browser.ts')],
+        entryPoints: [path.join(SRC, 'ts', 'engine', 'browser.ts')],
         bundle: true, format: 'iife', target: TARGET, write: false, legalComments: 'none',
     });
-    parts.push(`/* ==== src/ts/spim ==== */\n${engine.outputFiles[0].text}`);
+    parts.push(`/* ==== src/ts/engine ==== */\n${engine.outputFiles[0].text}`);
 
-    // Example programs
+    // Example programs: { 'mips/hello.asm': '...', 'riscv/hello.asm': '...' }
     const examples = {};
-    fs.readdirSync(path.join(SRC, 'examples')).filter(f => f.endsWith('.asm')).sort()
-        .forEach(f => { examples[f] = read(SRC, 'examples', f); });
+    const walk = (dir) => fs.readdirSync(path.join(SRC, 'examples', dir), { withFileTypes: true })
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(d => {
+            const rel = dir ? `${dir}/${d.name}` : d.name;
+            if (d.isDirectory()) walk(rel);
+            else if (d.name.endsWith('.asm')) examples[rel] = read(SRC, 'examples', rel);
+        });
+    walk('');
     parts.push(`/* ==== src/examples ==== */\nconst EXAMPLES_FILES = ${JSON.stringify(examples)};`);
 
     // GUI: each file is a classic script, types are stripped and the global
@@ -113,7 +123,7 @@ const buildDocs = async () => {
 const buildDist = async () => {
     fs.mkdirSync(DIST, { recursive: true });
     await esbuild.build({
-        entryPoints: [path.join(SRC, 'ts', 'spim', 'spim.ts')],
+        entryPoints: [path.join(SRC, 'ts', 'engine', 'spim.ts')],
         outfile: path.join(DIST, 'spim.cjs'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node18',
         footer: { js: 'module.exports = module.exports.default;' },

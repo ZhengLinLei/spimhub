@@ -21,7 +21,7 @@ interface Runner {
     spim: SPIMInstance;
     assemble(file?: EditorFile, open?: boolean): boolean;
     load_source(route: string, content: string, file?: EditorFile | null, open?: boolean): boolean;
-    run(): void;
+    run(show_output?: boolean): void;
     run_active(): void;
     step(): void;
     stop(verbose?: boolean): void;
@@ -29,6 +29,8 @@ interface Runner {
     open_segment(name: string): void;
     toggle_ascii(): void;
     toggle_format(): void;
+    toggle_arch(): void;
+    set_arch(mode: 'auto' | 'mips' | 'riscv', reload?: boolean): void;
     scroll_pc(): void;
     show_breakpoints(): void;
     download_logs(): void;
@@ -37,6 +39,7 @@ interface Runner {
     clear_output(): void;
     get_active(): EditorFile | null;
     readonly route: string | null;
+    readonly arch_mode: 'auto' | 'mips' | 'riscv';
     readonly running: boolean;
 }
 
@@ -45,7 +48,7 @@ let RUNNER: Runner;
 window.addEventListener('load', () => {
 
     const $ = (sel) => document.querySelector(sel);
-    const { hex } = SPIM.ISA;
+    const hex = SPIM.hex;
 
     // ================== //
     //  DOM               //
@@ -65,6 +68,8 @@ window.addEventListener('load', () => {
         cop1: $('#register-section .runner-coproc1 tbody'),
         cop0: $('#register-section .runner-coproc0 tbody'),
         format: $('#register-section .register-format'),
+        archBadge: $('#main-runner .runner-arch'),
+        archToggle: $('#main-runner .arch-toggle'),
         output: $('#output-main .output-log'),
         outputMain: $('#output-main'),
         inputBox: $('#output-main .output-input'),
@@ -85,6 +90,7 @@ window.addEventListener('load', () => {
         timer: null,
         paused: false,
         format: 'hex',          // Register / memory format: hex | dec
+        arch: 'auto' as 'auto' | 'mips' | 'riscv',     // Architecture of the next assemble
         segment: 'data',        // Data segment view: data | heap | stack
         ascii: false,
         prev: null,             // Snapshot before the last step / run
@@ -133,6 +139,7 @@ window.addEventListener('load', () => {
     // Program output (syscalls) is buffered and painted at most every 30ms
     // (setTimeout instead of requestAnimationFrame: it also runs in background tabs)
     const output = (text) => {
+        HUB.emit('output', text);
         state.outputBuffer += text;
         if (!state.outputFlush) {
             state.outputFlush = true;
@@ -244,7 +251,7 @@ window.addEventListener('load', () => {
         if (state.route !== route) spim.breakpoints.clear();
 
         let t0 = performance.now();
-        let program = spim.load(content, route);
+        let program = spim.load(content, route, { arch: state.arch });
         let ms = (performance.now() - t0).toFixed(1);
 
         state.file = file;
@@ -252,6 +259,7 @@ window.addEventListener('load', () => {
         state.source = content;
         state.paused = false;
         el.file.innerHTML = `[${escape(route)}]`;
+        render_arch();
 
         clear_output();
         hide_input();
@@ -263,6 +271,7 @@ window.addEventListener('load', () => {
             mark_errors(file, program.errors);
         }
 
+        HUB.emit('assemble', { route, ok: program.ok, program });
         if (!program.ok) {
             program.errors.forEach(e => log(`${route}:${e.line}: error: ${e.message}`, 'error'));
             log(`assemble failed: ${program.errors.length} error(s)`, 'error');
@@ -293,9 +302,11 @@ window.addEventListener('load', () => {
         let s = spim.state;
         let cpu = spim.cpu;
         if (s === 'exited') {
+            HUB.emit('exit', { code: cpu.exitCode, steps: cpu.steps, route: state.route });
             flush_output();
             log(`program exited with code ${cpu.exitCode} after ${cpu.steps} instructions`, 'success');
         } else if (s === 'error') {
+            HUB.emit('error', { message: cpu.error, route: state.route });
             flush_output();
             let row = spim.textAt(cpu.pc);
             let where = row && row.line ? ` (${state.route}:${row.line})` : '';
@@ -331,7 +342,7 @@ window.addEventListener('load', () => {
     /**
      * Runs until a breakpoint, an input request or the end of the program
      */
-    const run = () => {
+    const run = (show_output = true) => {
         if (state.running) return;
         if (!spim.loaded) {
             if (!assemble()) return;
@@ -347,8 +358,9 @@ window.addEventListener('load', () => {
         state.prev = spim.cpu.snapshot();
         state.running = true;
         state.paused = false;
+        HUB.emit('run', { route: state.route });
         set_state('running');
-        toggle_terminal(1, 'output');
+        if (show_output) toggle_terminal(1, 'output');
         tick();
     };
 
@@ -379,6 +391,7 @@ window.addEventListener('load', () => {
         state.prev = spim.cpu.snapshot();
         state.paused = true;
         spim.runStep();
+        HUB.emit('step', { pc: spim.pc });
         finished();
         render_all(true);
     };
@@ -514,6 +527,8 @@ window.addEventListener('load', () => {
     // ================== //
     //  Render: data      //
     // ================== //
+    const sp_reg = () => spim.arch === 'riscv' ? 2 : 29;
+
     const segment_range = () => {
         let cpu = spim.cpu;
         let program = spim.program;
@@ -524,8 +539,8 @@ window.addEventListener('load', () => {
                 return rows(start, cpu.heap || start);
             }
             case 'stack': {
-                let sp = (cpu.r[29] >>> 0);
-                let top = SPIM.CPU.SP_INIT + 4;
+                let sp = (cpu.r[sp_reg()] >>> 0);
+                let top = SPIM.SP_INIT + 4;
                 if (sp > top || sp < 0x10000000) sp = top - 16 * 8;
                 return [sp & ~15, Math.max(top, (sp & ~15) + 16 * 8)];
             }
@@ -551,7 +566,7 @@ window.addEventListener('load', () => {
     const render_data = () => {
         let [start, end] = segment_range();
         end = Math.min(end, start + 16 * MAX_ROWS);
-        let sp = spim.cpu.r[29] >>> 0;
+        let sp = spim.cpu.r[sp_reg()] >>> 0;
         let html = '';
         let mem = new Map();
         for (let a = start; a < end; a += 16) {
@@ -580,16 +595,20 @@ window.addEventListener('load', () => {
     const render_registers = () => {
         let cpu = spim.cpu;
         let prev = state.prev || cpu.snapshot();
-        let names = SPIM.REGISTERS;
+        let names = spim.registers;
+        let riscv = cpu.arch === 'riscv';
 
         let html = '';
         for (let i = 0; i < 32; i++) {
-            html += `<tr><td>[$${names[i]}]</td><td>$${i}</td><td${changed(cpu.r[i], prev.r[i])}>${fmt(cpu.r[i])}</td></tr>`;
+            html += `<tr><td>[${names[i]}]</td><td>${riscv ? 'x' : '$'}${i}</td><td${changed(cpu.r[i], prev.r[i])}>${fmt(cpu.r[i])}</td></tr>`;
         }
         html += `<tr><td>[pc]</td><td></td><td>${hex(cpu.pc)}</td></tr>`;
-        html += `<tr><td>[hi]</td><td></td><td${changed(cpu.hi, prev.hi)}>${fmt(cpu.hi)}</td></tr>`;
-        html += `<tr><td>[lo]</td><td></td><td${changed(cpu.lo, prev.lo)}>${fmt(cpu.lo)}</td></tr>`;
+        if (cpu.arch === 'mips') {
+            html += `<tr><td>[hi]</td><td></td><td${changed(cpu.hi, prev.hi)}>${fmt(cpu.hi)}</td></tr>`;
+            html += `<tr><td>[lo]</td><td></td><td${changed(cpu.lo, prev.lo)}>${fmt(cpu.lo)}</td></tr>`;
+        }
         el.regs.innerHTML = html;
+        if (cpu.arch !== 'mips') return;
 
         // Coprocessor 1
         html = '';
@@ -616,11 +635,43 @@ window.addEventListener('load', () => {
         el.cop0.innerHTML = html;
     };
 
+    // ================== //
+    //  Architecture      //
+    // ================== //
+    const ARCH_LABEL = { auto: 'auto', mips: 'mips', riscv: 'risc-v' };
+
+    // Badge of the loaded architecture + coprocessor tabs (MIPS only)
+    const render_arch = () => {
+        let arch = spim.program ? spim.arch : null;
+        el.archBadge.innerHTML = arch ? `[${spim.archLabel}]` : '';
+        el.archToggle.innerHTML = `[arch: ${ARCH_LABEL[state.arch]}]`;
+        document.querySelector('#main-runner').setAttribute('arch', arch || state.arch);
+        if (arch === 'riscv') __group_register.open_tab('register');
+    };
+
+    /**
+     * Cycles the architecture used to assemble: auto (detected) -> mips -> risc-v
+     */
+    const set_arch = (mode: 'auto' | 'mips' | 'riscv', reload = true) => {
+        state.arch = mode;
+        render_arch();
+        if (reload && state.route) reset();
+    };
+
+    const toggle_arch = () => {
+        state.arch = state.arch === 'auto' ? 'mips' : state.arch === 'mips' ? 'riscv' : 'auto';
+        log(`architecture: ${ARCH_LABEL[state.arch]}${state.arch === 'auto' ? ' (detected from the source)' : ''}`);
+        render_arch();
+        if (state.route) reset();
+    };
+
     const render_all = (scroll = true) => {
         render_registers();
         render_data();
         render_pc(scroll);
         set_state(spim.loaded ? current_state() : (spim.program ? 'error' : 'idle'));
+        // The [pipeline] view follows the execution
+        if (typeof PIPELINE !== 'undefined' && PIPELINE) PIPELINE.refresh();
     };
 
     // ================== //
@@ -669,15 +720,17 @@ window.addEventListener('load', () => {
     };
 
     // Initial (empty) tables
+    render_arch();
     render_all(false);
     set_state('idle');
 
     RUNNER = {
         spim,
         assemble, load_source, run, run_active, step, stop, reset,
-        open_segment, toggle_ascii, toggle_format, scroll_pc, show_breakpoints, download_logs,
+        open_segment, toggle_ascii, toggle_format, scroll_pc, show_breakpoints, download_logs, toggle_arch, set_arch,
         log, output, clear_output, get_active,
         get route() { return state.route; },
+        get arch_mode() { return state.arch; },
         get running() { return state.running; },
     };
 });

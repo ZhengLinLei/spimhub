@@ -1,0 +1,14 @@
+{
+    "id": "theme-dracula",
+    "name": "Dracula theme",
+    "version": "1.0.0",
+    "description": "The dark theme with the Dracula palette. An extension made only with CSS.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "styles": "style.css",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "themes": ["dark"]
+    }
+}

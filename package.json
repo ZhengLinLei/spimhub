@@ -1,7 +1,7 @@
 {
   "name": "spimhub",
-  "version": "1.0.0",
-  "description": "SpimHub - A MIPS Assembly IDE for Web Browsers: editor, MIPS32 assembler and simulator",
+  "version": "1.1.0",
+  "description": "SpimHub - MIPS & RISC-V Assembly IDE for Web Browsers: editor, assemblers, simulator and a visual 5 stage pipeline",
   "license": "MIT",
   "author": "ZhengLinLei <zheng9112003@icloud.com>",
   "repository": {

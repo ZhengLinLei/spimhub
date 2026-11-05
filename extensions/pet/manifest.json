@@ -1,0 +1,17 @@
+{
+    "id": "pet",
+    "name": "SpimHub pet",
+    "version": "1.0.1",
+    "description": "A small friend that lives in the corner: it celebrates your programs, cries with the exceptions and gives MIPS / RISC-V tips.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "main": "main.js",
+    "styles": "style.css",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "events": ["assemble", "run", "exit", "error", "file-save"],
+        "commands": ["pet"],
+        "palette": ["pet: show / hide", "pet: give me a tip"]
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "id": "converter",
+    "name": "Number converter",
+    "version": "1.0.0",
+    "description": "Decimal, hexadecimal, binary, two's complement, IEEE-754 and ASCII. Panel + terminal command conv.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "main": "main.js",
+    "styles": "style.css",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "commands": ["conv"],
+        "palette": ["converter: open"],
+        "panels": ["converter"]
+    }
+}

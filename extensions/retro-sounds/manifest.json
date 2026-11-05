@@ -1,0 +1,16 @@
+{
+    "id": "retro-sounds",
+    "name": "Retro sounds",
+    "version": "1.0.0",
+    "description": "8-bit sounds: a jingle when the program ends well, a buzz when it fails.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "main": "main.js",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "events": ["exit", "error", "assemble"],
+        "commands": ["sound"],
+        "status": ["♪"]
+    }
+}

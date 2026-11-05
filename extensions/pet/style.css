@@ -1,0 +1,51 @@
+.spimhub-pet {
+    position: fixed;
+    left: 18px;
+    bottom: 34px;
+    width: 64px;
+    z-index: 150;
+    cursor: pointer;
+    user-select: none;
+    animation: pet-bob 3s ease-in-out infinite;
+}
+.spimhub-pet.hidden { display: none; }
+.spimhub-pet .pet-body { width: 64px; height: auto; display: block; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .15)); }
+.spimhub-pet .pet-head, .spimhub-pet .pet-foot { fill: var(--color-invert-muted); }
+.spimhub-pet .pet-mouth { fill: var(--color-error); transform-origin: 50px 57px; transition: transform .3s; }
+.spimhub-pet .pet-zzz { display: none; position: absolute; top: -14px; right: -4px; color: var(--color-muted); }
+
+.spimhub-pet .pet-bubble {
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    margin-bottom: 8px;
+    width: max-content;
+    max-width: 240px;
+    padding: 6px 9px;
+    background: var(--color-primary);
+    color: var(--color-invert);
+    border: .5px solid rgba(var(--color-invert-rgb), .4);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .12);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    white-space: normal;
+    line-height: 1.35;
+}
+.spimhub-pet .pet-bubble.show { opacity: 1; transform: none; }
+
+.spimhub-pet.happy { animation: pet-jump .5s ease-out 3; }
+.spimhub-pet.happy .pet-mouth { transform: scaleY(1.8); }
+.spimhub-pet.sad { animation: pet-shake .4s linear 3; }
+.spimhub-pet.sad .pet-mouth { transform: rotate(180deg) translateY(-6px); }
+.spimhub-pet.sad .pet-head { fill: var(--color-error); }
+.spimhub-pet.busy { animation: pet-bob .5s ease-in-out infinite; }
+.spimhub-pet.talk .pet-mouth { animation: pet-talk .25s ease-in-out 6; }
+.spimhub-pet.sleep { animation: none; opacity: .75; }
+.spimhub-pet.sleep .pet-zzz { display: block; animation: pet-bob 2s ease-in-out infinite; }
+
+@keyframes pet-bob { 50% { transform: translateY(-4px); } }
+@keyframes pet-jump { 40% { transform: translateY(-22px) scaleY(1.05); } 70% { transform: translateY(0) scaleY(.92); } }
+@keyframes pet-shake { 25% { transform: translateX(-5px) rotate(-4deg); } 75% { transform: translateX(5px) rotate(4deg); } }
+@keyframes pet-talk { 50% { transform: scaleY(2.2); } }

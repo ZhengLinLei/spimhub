@@ -15,16 +15,20 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import SPIM from '../spim/spim';
+import SPIM from '../engine/spim';
 
-const { hex } = SPIM.ISA;
+const { hex } = SPIM;
 
-const HELP = `SpimHub ${SPIM.VERSION} - MIPS32 assembler & simulator
+const HELP = `SpimHub ${SPIM.VERSION} - MIPS32 / RISC-V (RV32IM) assembler & simulator
 
 Usage: spimhub [options] <file.asm>
 
 Options:
+      --arch A         mips | riscv | auto (default: detected from the source)
   -a, --assemble       assemble only, do not run
+  -p, --pipeline       print the 5 stage pipeline diagram, hazards and CPI
+      --no-forwarding  pipeline without forwarding
+      --branch-id      branches resolved in ID (default EX)
   -d, --dump           print the text segment (address, code, basic, source)
   -D, --data           print the data segment
   -s, --symbols        print the symbol table
@@ -41,14 +45,24 @@ const args = process.argv.slice(2);
 interface Options {
     maxSteps: number; run: boolean; dump?: boolean; data?: boolean; symbols?: boolean;
     registers?: boolean; startup?: boolean; quiet?: boolean;
+    arch: 'mips' | 'riscv' | 'auto'; pipeline?: boolean; forwarding: boolean; branchStage: 'ID' | 'EX';
 }
-const opt: Options = { maxSteps: 10000000, run: true };
+const opt: Options = { maxSteps: 10000000, run: true, arch: 'auto', forwarding: true, branchStage: 'EX' };
 let file: string | null = null;
 
 for (let i = 0; i < args.length; i++) {
     const a = args[i];
     switch (a) {
         case '-a': case '--assemble': opt.run = false; break;
+        case '--arch': {
+            const v = (args[++i] || '').toLowerCase().replace('-', '');
+            if (v !== 'mips' && v !== 'riscv' && v !== 'auto') { console.error(`spimhub: unknown architecture ${v}`); process.exit(2); }
+            opt.arch = v;
+            break;
+        }
+        case '-p': case '--pipeline': opt.pipeline = true; break;
+        case '--no-forwarding': opt.forwarding = false; break;
+        case '--branch-id': opt.branchStage = 'ID'; break;
         case '-d': case '--dump': opt.dump = true; break;
         case '-D': case '--data': opt.data = true; break;
         case '-s': case '--symbols': opt.symbols = true; break;
@@ -100,7 +114,9 @@ const readLine = (): string => {
 
 // ---------------- Assemble ----------------
 const spim = new SPIM({ write: (t) => process.stdout.write(t), readLine });
-const program = spim.load(source, path.basename(file), { startup: opt.startup });
+const program = spim.load(source, path.basename(file), { startup: opt.startup, arch: opt.arch });
+spim.setPipelineOptions({ forwarding: opt.forwarding, branchStage: opt.branchStage });
+if (!opt.quiet && process.stderr.isTTY) console.error(`[${spim.archLabel}]`);
 
 program.warnings.forEach(w => console.error(`${file}:${w.line}: warning: ${w.message}`));
 if (!program.ok) {
@@ -133,16 +149,56 @@ const res = spim.runAll(opt.maxSteps);
 const cpu = spim.cpu;
 
 const printRegisters = () => {
-    const names = SPIM.REGISTERS;
-    const rows = [];
-    for (let i = 0; i < 32; i++) rows.push(`${('$' + names[i]).padEnd(6)}${('$' + i).padStart(4)} = ${hex(cpu.r[i])}`);
-    rows.push(`${'pc'.padEnd(10)} = ${hex(cpu.pc)}`, `${'hi'.padEnd(10)} = ${hex(cpu.hi)}`, `${'lo'.padEnd(10)} = ${hex(cpu.lo)}`);
+    const names = spim.registers;
+    const rows: string[] = [];
+    const num = (i: number) => spim.arch === 'mips' ? `$${i}` : `x${i}`;
+    for (let i = 0; i < 32; i++) rows.push(`${names[i].padEnd(6)}${num(i).padStart(4)} = ${hex(cpu.r[i])}`);
+    rows.push(`${'pc'.padEnd(10)} = ${hex(cpu.pc)}`);
+    if (cpu.arch === 'mips') rows.push(`${'hi'.padEnd(10)} = ${hex(cpu.hi)}`, `${'lo'.padEnd(10)} = ${hex(cpu.lo)}`);
     console.error('\n' + rows.join('\n'));
+};
+
+// Pipeline diagram (text): one row per instruction, one column per cycle
+const printPipeline = () => {
+    const rows = spim.pipeline.rows;
+    const st = spim.pipeline.stats();
+    const MAX = 60;
+    const shown = rows.slice(0, MAX);
+    const last = Math.max(...shown.map(r => r.flushed ? Math.max(r.endIF, r.endID) : r.WB), 0);
+    const cell = (r: typeof rows[number], c: number): string => {
+        if (r.flushed) {
+            if (c >= r.IF && c <= r.endIF) return c === r.endIF && !r.ID ? 'IFx' : 'IF';
+            if (r.ID && c >= r.ID && c <= r.endID) return 'IDx';
+            return '';
+        }
+        if (c >= r.IF && c <= r.endIF) return c === r.IF ? 'IF' : '-';
+        if (c >= r.ID && c <= r.endID) return c === r.ID ? 'ID' : '*';
+        if (c === r.EX) return 'EX';
+        if (c === r.MEM) return 'MEM';
+        if (c === r.WB) return 'WB';
+        return '';
+    };
+    const W = 28;
+    let head = '#   ' + 'instruction'.padEnd(W);
+    for (let c = 1; c <= last; c++) head += String(c).padStart(4);
+    console.error('\n' + head);
+    shown.forEach(r => {
+        let line = `${String(r.id).padEnd(4)}${(r.flushed ? '(flush) ' : '') + r.basic}`.slice(0, W + 4).padEnd(W + 4);
+        for (let c = 1; c <= last; c++) line += cell(r, c).padStart(4);
+        console.error(line);
+        r.hazards.forEach(h => console.error(`      ${h.type === 'control' ? '!' : '^'} ${h.text}`));
+    });
+    if (rows.length > MAX) console.error(`... ${rows.length - MAX} more rows`);
+    console.error(`\n${spim.archLabel} pipeline, forwarding ${spim.pipeline.options.forwarding ? 'on' : 'off'}, branches in ${spim.pipeline.options.branchStage}` +
+        `\n${st.instructions} instructions, ${st.cycles} cycles, CPI ${st.cpi.toFixed(2)}, IPC ${st.ipc.toFixed(2)}` +
+        `\n${st.stalls} stall cycles (data), ${st.flushes} flushed instructions (control), ${st.forwards} forwards` +
+        `\n(* stall in ID, - waiting in IF, x flushed)`);
 };
 
 if (res.state === SPIM.STATE.ERROR) {
     console.error(`\nspimhub: ${cpu.error}`);
     if (opt.registers) printRegisters();
+    if (opt.pipeline) printPipeline();
     process.exit(3);
 }
 if (res.state === SPIM.STATE.READY) {
@@ -151,5 +207,6 @@ if (res.state === SPIM.STATE.READY) {
     process.exit(4);
 }
 if (opt.registers) printRegisters();
+if (opt.pipeline) printPipeline();
 if (!opt.quiet && process.stderr.isTTY) console.error(`\n[program exited with code ${cpu.exitCode}, ${cpu.steps} instructions]`);
 process.exit(cpu.exitCode & 0xff);

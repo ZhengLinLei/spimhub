@@ -41,7 +41,7 @@
 // ================== //
 //  Global Variables  //
 // ================== //
-let FILE_SYSTEM: Record<string, FSFolder>, WINDOW_EDITOR: WindowEditor, TAB_SIZE: number, TAB_REGEX: RegExp, FORMAT: Format;
+let FILE_SYSTEM: Record<string, FSFolder>, WINDOW_EDITOR: WindowEditor, TAB_SIZE: number, TAB_REGEX: RegExp, FORMAT: Format, FORMAT_RISCV: Format;
 // Objects extended in several files (index.ts, terminal.ts)
 let ROOT_DIR: any, TERMINAL: any;
 let 
@@ -241,11 +241,42 @@ let LOAD_EDITOR_DATA = (render=true) => {
     }
 }
 
-// Bundled examples (src/examples/*.asm, embedded by scripts/build.mjs),
-// copied into the virtual filesystem on the first visit
+// Bundled examples (src/examples/**/*.asm, embedded by scripts/build.mjs),
+// copied into the virtual filesystem: /examples/mips, /examples/riscv, /examples/pipeline
 const EXAMPLES = {
     folder: 'examples',
-    first: 'hello.asm',
+    first: 'mips/hello.asm',
+    version: '2',               // Bump to import new examples into saved projects
+    key: 'sh-examples',
+};
+
+/**
+ * Copies the bundled examples into FILE_SYSTEM (only the missing files and folders)
+ *
+ * @return {Number} - Imported files
+ */
+const IMPORT_EXAMPLES = (): number => {
+    let imported = 0;
+    const mkdir = (parent: string, name: string) => {
+        let route = `${parent}${name}/`;
+        if (!FILE_SYSTEM[route]) {
+            FILE_SYSTEM[route] = { name: `[${name}]`, files: {}, folders: [], active: true };
+            if (!FILE_SYSTEM[parent].folders.includes(name)) FILE_SYSTEM[parent].folders.push(name);
+        }
+        return route;
+    };
+    Object.entries(EXAMPLES_FILES).forEach(([rel, content]) => {
+        let parts = rel.split('/');
+        let name = parts.pop();
+        let route = mkdir('/', EXAMPLES.folder);
+        parts.forEach(dir => { route = mkdir(route, dir); });
+        if (!FILE_SYSTEM[route].files[name]) {
+            FILE_SYSTEM[route].files[name] = { name, route, content };
+            imported++;
+        }
+    });
+    try { localStorage.setItem(EXAMPLES.key, EXAMPLES.version); } catch (e) { /* Storage disabled */ }
+    return imported;
 };
 
 /**
@@ -256,23 +287,25 @@ const EXAMPLES = {
 LOAD_PROJECT = () => {
     LOAD_FILE_SYSTEM(true, (loaded) => {
         if (loaded) {
+            // Saved project: add the new examples (RISC-V, pipeline) once
+            let version = null;
+            try { version = localStorage.getItem(EXAMPLES.key); } catch (e) { /* Storage disabled */ }
+            if (version !== EXAMPLES.version && IMPORT_EXAMPLES()) {
+                ROOT_DIR.clean_gui('/');
+                ROOT_DIR.get_dir_gui('/');
+                SAVE_FILE_SYSTEM();
+            }
             LOAD_EDITOR_DATA(true);
             return;
         }
 
-        let route = `/${EXAMPLES.folder}/`;
-        FILE_SYSTEM['/'].folders.push(EXAMPLES.folder);
-        FILE_SYSTEM[route] = { name: `[${EXAMPLES.folder}]`, files: {}, folders: [], active: true };
-        Object.entries(EXAMPLES_FILES).forEach(([name, content]) => {
-            FILE_SYSTEM[route].files[name] = { name, route, content };
-        });
-
+        IMPORT_EXAMPLES();
         ROOT_DIR.clean_gui('/');
         ROOT_DIR.get_dir_gui('/');
         SAVE_FILE_SYSTEM();
 
         // Open the first example
-        let first = FILE_SYSTEM[route].files[EXAMPLES.first];
+        let first = check_file(`/${EXAMPLES.folder}/${EXAMPLES.first}`, false);
         if (first) open_file(first);
     });
 }
@@ -365,6 +398,7 @@ set_theme = (theme)=> {
     }
     // Set theme
     document.documentElement.setAttribute('theme', theme);
+    if (typeof HUB !== 'undefined') HUB.emit('theme', theme);
 
     // Save theme
     try { localStorage.setItem('sh-theme', theme); } catch (e) { /* Storage disabled */ }
@@ -616,10 +650,8 @@ window.addEventListener('load', ()=> {
      * @param {Boolean} replace - Focus the replace input
      */
     html_find = (replace = false) => {
-        toggle_opt(1, 'search');
-        let input = document.getElementById(replace ? 'content-replace-file' : 'content-search-file') as HTMLInputElement;
-        input.focus();
-        input.select();
+        if (replace) FINDER.open(true);
+        else SEARCH.open();
     }
 
     // Full screen
@@ -861,6 +893,7 @@ window.addEventListener('load', ()=> {
                     let __folder_el_x_a = document.createElement('a');
                     __folder_el_x_a.classList.add('x-folder');
                     __folder_el_x_a.innerHTML = `[${folder}]`;
+                    __folder_el_x_a.draggable = true;
                     __folder_el_x_a.addEventListener('click', () => {
                         // Focus folder directory
                         ROOT_DIR.focus_dir(new_route);
@@ -912,6 +945,11 @@ window.addEventListener('load', ()=> {
                 let _file_el_a = document.createElement('a');
                 _file_el_a.classList.add('x-file');
                 _file_el_a.innerHTML = file.name;
+                // Drag & drop (src/ts/app/dnd.ts)
+                _file_el_a.draggable = true;
+                _file_el_a.dataset.route = file.route;
+                _file_el_a.dataset.name = file.name;
+                _file_el_a.title = file.route + file.name;
                 _file_el_a.addEventListener('click', () => {
                     // Focus file directory
                     ROOT_DIR.focus_dir(file.route);
@@ -972,6 +1010,7 @@ window.addEventListener('load', ()=> {
 
     // SET FORMAT
     FORMAT = new Format(__mipsasm_scope());
+    FORMAT_RISCV = new Format(__riscv_scope());
 
 
     const pop_menu = (e, menu)=> {
@@ -1489,6 +1528,10 @@ window.addEventListener('load', ()=> {
         [file.__fw, file.__f].forEach(e => {
             e.classList.add('active');
         });
+
+        // Keep the tab visible when there are many files
+        file.__fw.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        if (typeof HUB !== 'undefined') HUB.emit('file-open', { route: file.route, name: file.name });
     };
 
     const formate_code = (code) => {
@@ -1501,7 +1544,10 @@ window.addEventListener('load', ()=> {
             .replaceAll(/>/g, '&gt;')
             ;
         });
-        return FORMAT.formateCode(code);
+        // MIPS or RISC-V highlighting (forced from the runner or detected from the source)
+        let forced = (typeof RUNNER !== 'undefined' && RUNNER) ? RUNNER.arch_mode : 'auto';
+        let arch = forced === 'auto' ? SPIM.detectArch(code.join('\n')) : forced;
+        return (arch === 'riscv' ? FORMAT_RISCV : FORMAT).formateCode(code);
     };
 
     update_code = (textarea, metadata, file) => {
@@ -1818,6 +1864,12 @@ window.addEventListener('load', ()=> {
 
         __fw.classList.add(`w-${__wnum}-f-${WINDOW_EDITOR.files[`w${__wnum}`].length}`);
         __fw.setAttribute('route', `~${file.route + file.name}`);
+        __fw.title = file.route + file.name;
+        __fw.draggable = true;
+        // Middle click closes the tab
+        __fw.addEventListener('auxclick', (e) => {
+            if (e.button === 1) { e.preventDefault(); close_file(__wnum, metadata); }
+        });
 
             // Create file name
             let __fw_name = document.createElement('a');
@@ -1844,7 +1896,18 @@ window.addEventListener('load', ()=> {
         __fw.appendChild(__fw_close);
 
         // Append file wrapper to file queue
-        __w.querySelector('.file-queue').appendChild(__fw);
+        let __queue = __w.querySelector<HTMLElement>('.file-queue');
+        __queue.appendChild(__fw);
+        // The mouse wheel scrolls the tabs horizontally
+        if (!__queue.dataset.wheel) {
+            __queue.dataset.wheel = '1';
+            __queue.addEventListener('wheel', (e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    __queue.scrollLeft += e.deltaY;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
 
         
         // <div class="f-0 editor-file">
@@ -1899,22 +1962,11 @@ window.addEventListener('load', ()=> {
             __f_textarea.addEventListener('focusout', () => unfocus_line(__f_textarea));
 
             __f_textarea.addEventListener('keydown', (e) => {
-                // Write tab on tab press
-                if(e.key == 'Tab' || e.keyCode == 9 || e.which == 9) {
+                // Tab / Shift + Tab (indent), Enter (keep the indentation), Ctrl + / (comment)
+                // see UX.edit_keys (src/ts/app/ux.ts). execCommand keeps the undo / redo stack.
+                if (UX.edit_keys(__f_textarea, e)) {
                     e.preventDefault();
-
-                    // execCommand keeps the native undo / redo stack working
-                    if (!document.execCommand('insertText', false, " ".repeat(TAB_SIZE))) {
-                        const start = __f_textarea.selectionStart;
-                        __f_textarea.value = __f_textarea.value.substring(0, start) + " ".repeat(TAB_SIZE) + __f_textarea.value.substring(__f_textarea.selectionEnd);
-                        // fix caret position
-                        __f_textarea.selectionStart = __f_textarea.selectionEnd = start + TAB_SIZE;
-                    }
-
-
-                    // Update code
-                    update_code(__f_textarea, metadata, file);
-
+                    return;
                 }
                 // Update lines number if the user jump lines
                 if(e.key == 'ArrowUp' || e.keyCode == 38 || e.which == 38){
@@ -2352,14 +2404,8 @@ window.addEventListener('load', ()=> {
     // ================= //
     // If user drag a file into the window
 
-    window.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Open pop-up
-        __pop_up._open_project()
-
-    });
+    // (Dropping files on the window is handled by src/ts/app/dnd.ts:
+    //  .asm files are imported, a .spim project is opened)
 
     WINDOW_EDITOR = {
         parent: document.querySelector('#main-editor'),
@@ -2678,6 +2724,7 @@ window.addEventListener('load', ()=> {
         if (!file || content === undefined || !file.__fw.classList.contains('not-saved')) return false;
 
         file.file.content = content;
+        if (typeof HUB !== 'undefined') HUB.emit('file-save', { route: file.route, name: file.name });
 
         file.__fw.classList.remove('not-saved');
 
@@ -2695,6 +2742,8 @@ window.addEventListener('load', ()=> {
         groups : {
             editor: document.querySelector('#main-editor'),
             runner: runner_editor.el,
+            pipeline: document.querySelector('#main-pipeline'),
+            settings: document.querySelector('#main-settings'),
             extensions: document.querySelector('#main-extensions'),
         },
     }
@@ -2707,7 +2756,7 @@ window.addEventListener('load', ()=> {
         },
 
         open_group: (group) => {
-            let __groups = ['editor', 'runner', 'extensions'];
+            let __groups = ['editor', 'runner', 'pipeline', 'settings', 'extensions'];
 
             // Reject if group is not valid
             if(!__groups.includes(group)) return;
@@ -3329,7 +3378,7 @@ window.addEventListener('load', ()=> {
             KeyX: () => download_project(),
             KeyY: () => __pop_up._new_project(),
             KeyZ: () => __pop_up._open_project(),
-            KeyF: () => html_find(true),
+            KeyF: () => FINDER.open(true),
             KeyI: () => toggle_terminal(1, 'output'),
             KeyT: () => toggle_terminal(1),
             KeyJ: () => toggle_terminal(1, 'console'),
@@ -3337,6 +3386,7 @@ window.addEventListener('load', ()=> {
             KeyE: () => __group_h.open_group('editor'),
             KeyD: () => __group_h.open_group('runner'),
             KeyK: () => set_theme('toggle'),
+            KeyL: () => PIPELINE.open(),
         },
         // Alt + Shift + key
         alt_shift: {
@@ -3345,12 +3395,15 @@ window.addEventListener('load', ()=> {
             KeyS: () => download_project(),
             KeyN: () => __pop_up._new_project(),
             KeyO: () => __pop_up._open_project(),
+            KeyX: () => EXTENSIONS.open(),
+            KeyF: () => SEARCH.open(),
         },
         // Function keys
         fn: {
             F5: () => RUNNER.run(),
             F10: () => RUNNER.step(),
             F11: () => RUNNER.step(),
+            F1: () => UX.palette(),
         },
     };
 
@@ -3359,14 +3412,25 @@ window.addEventListener('load', ()=> {
 
         if (e.altKey && !e.ctrlKey && !e.metaKey)
             fnc = (e.shiftKey ? SHORTCUTS.alt_shift : SHORTCUTS.alt)[e.code];
-        else if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey)
+        else if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key !== 'F3')
             fnc = SHORTCUTS.fn[e.key];
         // Save (Ctrl / ⌘ + S)
         else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyS')
             fnc = () => html_save('file');
-        // Find (Ctrl / ⌘ + F) only when the editor is focused
-        else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF' && document.activeElement.classList.contains('textarea-main'))
-            fnc = () => html_find();
+        // Ctrl / ⌘ + key
+        else if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+            let key = (e.shiftKey ? 'Shift+' : '') + e.code;
+            fnc = ({
+                'KeyF': () => FINDER.open(),
+                'Shift+KeyF': () => SEARCH.open(),
+                'KeyG': () => UX.goto_line(),
+                'Shift+KeyP': () => UX.palette(),
+                'Comma': () => SETTINGS.open(),
+            })[key] || null;
+        }
+        // F3 / Shift + F3: next / previous match
+        else if (e.key === 'F3')
+            fnc = () => e.shiftKey ? FINDER.prev() : FINDER.next();
 
         if (fnc) {
             e.preventDefault();

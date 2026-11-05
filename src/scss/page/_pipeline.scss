@@ -1,0 +1,419 @@
+// =================
+//
+//  Pipeline view (src/ts/app/pipeline.ts) + architecture (MIPS / RISC-V)
+//
+// =================
+
+$border: #{ rgba(var(--color-invert-rgb), 0.3) };
+
+html {
+    // One soft color per stage
+    --stage-if: #d3e8ff;
+    --stage-id: #e6dcff;
+    --stage-ex: #ffe2c4;
+    --stage-mem: #cfeedd;
+    --stage-wb: #f8d6e5;
+    --fwd: #2b8a3e;
+    --taken: #d9480f;
+
+    &[theme="dark"] {
+        --stage-if: #20405f;
+        --stage-id: #3b3060;
+        --stage-ex: #5e3f1f;
+        --stage-mem: #1e4a34;
+        --stage-wb: #5b2643;
+        --fwd: #69db7c;
+        --taken: #ff922b;
+    }
+}
+
+body {
+    // ---------------- Sidebar link ----------------
+    #opt-files .pipeline a {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        &:hover span:nth-child(2) {
+            color: var(--color-invert);
+        }
+    }
+
+    > main > main {
+        #main-pipeline {
+            height: 100%;
+            overflow: hidden;
+        }
+        &[terminal="1"] #main-pipeline {
+            height: calc(100% - var(--terminal-size)) !important;
+        }
+    }
+
+    // ---------------- Runner: architecture ----------------
+    #main-runner {
+        .runner-arch {
+            font-weight: bold;
+        }
+        .arch-toggle {
+            border-left: .5px solid $border;
+        }
+        &[arch="riscv"] #register-section .tab.coproc1,
+        &[arch="riscv"] #register-section .tab.coproc0 {
+            display: none;
+        }
+    }
+
+    // ---------------- Pipeline ----------------
+    #main-pipeline {
+        display: none;
+        flex-direction: column;
+        &.active {
+            display: flex;
+        }
+        background-color: var(--color-primary);
+
+        > .cap {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            .title {
+                padding: 0 7px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .run {
+                align-items: center;
+                > a, > span {
+                    padding: 7px;
+                    border-left: .5px solid $border;
+                }
+                .pl-cycle {
+                    min-width: 120px;
+                    text-align: center;
+                    background-color: var(--color-primary);
+                }
+                .pl-forwarding.off {
+                    background-color: var(--color-warning);
+                }
+                .run-all {
+                    background-color: var(--color-success);
+                    &:hover {
+                        background-color: var(--color-success-hover) !important;
+                    }
+                }
+            }
+        }
+
+        > main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+            min-height: 0;
+        }
+
+        .pl-empty {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        &.empty {
+            .pl-empty { display: flex; }
+            .pl-top, .pl-bottom, .pl-legend { display: none; }
+        }
+
+        .pl-top {
+            display: flex;
+            border-bottom: .5px solid $border;
+        }
+        .pl-datapath {
+            flex: 1;
+            min-width: 0;
+            padding: 6px;
+            svg {
+                width: 100%;
+                height: auto;
+                max-height: 340px;
+                display: block;
+            }
+        }
+        .pl-side {
+            width: 280px;
+            flex-shrink: 0;
+            border-left: .5px solid $border;
+            display: flex;
+            flex-direction: column;
+        }
+        .pl-stats {
+            padding: 8px 10px;
+            line-height: 1.6;
+            border-bottom: .5px solid $border;
+            background-color: var(--color-helper-light);
+        }
+        .pl-memmap svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .pl-bottom {
+            display: flex;
+            flex: 1;
+            min-height: 200px;
+        }
+        .pl-diagram {
+            flex: 1;
+            overflow: auto;
+            table {
+                border-collapse: collapse;
+                min-width: 100%;
+                th, td {
+                    border: .5px solid $border;
+                    padding: 4px 5px;
+                    white-space: nowrap;
+                    text-align: center;
+                    font-weight: 400;
+                }
+                thead th {
+                    background-color: var(--color-secondary);
+                    position: sticky;
+                    top: 0;
+                    z-index: 1;
+                    &.cyc {
+                        cursor: pointer;
+                        min-width: 38px;
+                        &:hover { background-color: var(--color-hover); }
+                    }
+                    &.now { background-color: var(--color-invert); color: var(--color-primary); }
+                }
+                td:nth-child(2) {
+                    text-align: start;
+                    min-width: 220px;
+                }
+                td.now { box-shadow: inset 2px 0 var(--color-invert), inset -2px 0 var(--color-invert); }
+                td { position: relative; }
+                tbody tr {
+                    cursor: pointer;
+                    &:hover td:nth-child(-n+2) { background-color: var(--color-helper); }
+                    &.selected td:nth-child(-n+2) { background-color: var(--color-hover); }
+                    &.producer td:nth-child(-n+2) { box-shadow: inset 0 0 0 1.5px var(--fwd); }
+                    &.flushed td:nth-child(2) {
+                        color: var(--color-muted);
+                        text-decoration: line-through;
+                    }
+                }
+            }
+            .hz {
+                display: inline-block;
+                margin-left: 3px;
+                padding: 0 3px;
+                font-size: 10px;
+                border: .5px solid $border;
+                &.hz-stall { background-color: var(--color-warning); color: #000; }
+                &.hz-control { background-color: var(--taken); color: #fff; }
+                &.hz-fwd { color: var(--fwd); }
+            }
+        }
+
+        // Stage colors (diagram cells + legend)
+        .st-IF { background-color: var(--stage-if); }
+        .st-ID { background-color: var(--stage-id); }
+        .st-EX { background-color: var(--stage-ex); }
+        .st-MEM { background-color: var(--stage-mem); }
+        .st-WB { background-color: var(--stage-wb); }
+        .stall { background-color: var(--color-warning); color: #000; }
+        .flush {
+            background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(251, 52, 30, 0.25) 4px 8px);
+            color: var(--color-error);
+        }
+        td.flushed { color: var(--color-error); font-weight: bold; }
+        .fwd-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            margin-left: 3px;
+            background-color: var(--fwd);
+            vertical-align: middle;
+        }
+
+        .pl-hazards {
+            width: 360px;
+            flex-shrink: 0;
+            overflow: auto;
+            border-left: .5px solid $border;
+            ul li {
+                padding: 4px 8px;
+                border-left: 3px solid transparent;
+                &.head {
+                    font-weight: bold;
+                    background-color: var(--color-secondary);
+                    margin-top: 6px;
+                }
+                &.stall { border-color: var(--color-warning); }
+                &.flush { border-color: var(--taken); }
+                &.fwd { border-color: var(--fwd); }
+                &.bubble { color: var(--color-muted); }
+                &.ok { border-color: var(--color-success); }
+                &.stage {
+                    padding: 2px 8px;
+                    .stage-name { display: inline-block; width: 34px; font-weight: bold; }
+                }
+                &.st-line-IF { border-color: var(--stage-if); }
+                &.st-line-ID { border-color: var(--stage-id); }
+                &.st-line-EX { border-color: var(--stage-ex); }
+                &.st-line-MEM { border-color: var(--stage-mem); }
+                &.st-line-WB { border-color: var(--stage-wb); }
+            }
+        }
+
+        // Narrow screens: panels below the datapath / diagram
+        @media (max-width: 1100px) {
+            .pl-top, .pl-bottom { flex-direction: column; }
+            .pl-side, .pl-hazards {
+                width: 100%;
+                border-left: none;
+                border-top: .5px solid $border;
+            }
+            .pl-side { flex-direction: row; }
+            .pl-stats { flex: 1; }
+            .pl-memmap { width: 260px; }
+            .pl-diagram { min-height: 260px; }
+        }
+
+        .pl-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 6px 10px;
+            border-top: .5px solid $border;
+            i {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                margin-right: 5px;
+                vertical-align: middle;
+                border: .5px solid $border;
+            }
+        }
+    }
+
+    // ---------------- Datapath SVG ----------------
+    svg.dp {
+        text {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            fill: var(--color-invert);
+            text-anchor: middle;
+        }
+        .dp-stage {
+            cursor: pointer;
+            rect { fill: var(--color-secondary); stroke: $border; }
+            text { text-anchor: start; }
+            .dp-stage-name { font-weight: bold; }
+            .dp-stage-state { text-anchor: end; fill: var(--color-invert-muted); }
+            &.idle text { fill: var(--color-muted); }
+            &.bubble {
+                rect { fill: var(--color-helper); stroke-dasharray: 4 3; }
+                .dp-stage-instr { fill: var(--color-muted); }
+            }
+            &.stall rect { fill: var(--color-warning); }
+            &.stall text { fill: #000; }
+            &.flush rect { fill: rgba(251, 52, 30, 0.3); }
+        }
+        #dp-stage-IF.run rect { fill: var(--stage-if); }
+        #dp-stage-ID.run rect { fill: var(--stage-id); }
+        #dp-stage-EX.run rect { fill: var(--stage-ex); }
+        #dp-stage-MEM.run rect { fill: var(--stage-mem); }
+        #dp-stage-WB.run rect { fill: var(--stage-wb); }
+
+        .dp-block {
+            rect, path { fill: var(--color-primary); stroke: var(--color-muted); stroke-width: 1; }
+            &.active rect, &.active path { stroke: var(--color-invert); stroke-width: 1.6; }
+            &.hidden { display: none; }
+        }
+        #dp-pc.active rect, #dp-imem.active rect, #dp-add.active rect, #dp-pcmux.active rect { fill: var(--stage-if); }
+        #dp-rf.active rect, #dp-imm.active rect { fill: var(--stage-id); }
+        #dp-cmp.taken rect { fill: var(--taken); }
+        #dp-alu.active path { fill: var(--stage-ex); }
+        #dp-dmem.active rect { fill: var(--stage-mem); }
+        #dp-wbmux.active rect { fill: var(--stage-wb); }
+        #dp-pcmux.taken rect { stroke: var(--taken); stroke-width: 2; }
+
+        .dp-latch {
+            rect { fill: var(--color-secondary); stroke: var(--color-muted); }
+            text { font-size: 9px; fill: var(--color-invert-muted); }
+            &.active rect { stroke: var(--color-invert); stroke-width: 1.4; }
+        }
+
+        .dp-wire {
+            fill: none;
+            stroke: var(--color-hover);
+            stroke-width: 1.4;
+            &.active { stroke: var(--color-invert); stroke-width: 2.2; }
+        }
+        .dp-branch {
+            stroke-dasharray: 4 3;
+            &.taken { stroke: var(--taken); stroke-width: 2.6; stroke-dasharray: none; }
+        }
+        #dp-branch-id { opacity: 0; &.taken { opacity: 1; } }
+        .dp-fwd {
+            fill: none;
+            stroke: var(--color-hover);
+            stroke-width: 1.2;
+            stroke-dasharray: 2 4;
+            opacity: .45;
+            &.fwd {
+                stroke: var(--fwd);
+                stroke-width: 2.6;
+                stroke-dasharray: 8 4;
+                opacity: 1;
+                animation: dp-flow .6s linear infinite;
+            }
+        }
+        #dp-fwd-id { display: none; &.fwd { display: inline; } }
+
+        .dp-note {
+            font-size: 10px;
+            text-anchor: start;
+            fill: var(--color-invert-muted);
+        }
+        .dp-note-branch { fill: var(--taken); font-weight: bold; }
+        .dp-note-fwd { fill: var(--fwd); font-weight: bold; }
+    }
+    @keyframes dp-flow {
+        to { stroke-dashoffset: -12; }
+    }
+
+    // ---------------- Memory map SVG ----------------
+    svg.mm {
+        text {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            fill: var(--color-invert);
+            text-anchor: middle;
+        }
+        .mm-title { text-anchor: start; fill: var(--color-muted); }
+        .mm-addr { text-anchor: start; font-size: 9px; fill: var(--color-muted); }
+        .mm-seg rect { stroke: var(--color-muted); stroke-width: .8; }
+        .mm-seg.stack rect { fill: var(--stage-wb); }
+        .mm-seg.heap rect { fill: var(--stage-mem); }
+        .mm-seg.data rect { fill: var(--stage-id); }
+        .mm-seg.text rect { fill: var(--stage-if); }
+        .mm-seg.free rect { fill: none; stroke-dasharray: 3 3; }
+        .mm-seg.free text { fill: var(--color-muted); }
+        #mm-arrow path { fill: var(--color-invert); }
+        .mm-marker {
+            path { stroke: var(--color-invert); stroke-width: 1.4; fill: none; }
+            text { text-anchor: start; font-weight: bold; }
+            &.load path { stroke: var(--fwd); }
+            &.load text { fill: var(--fwd); }
+            &.store path { stroke: var(--taken); }
+            &.store text { fill: var(--taken); }
+            &.sp text, &.heaptop text { fill: var(--color-invert-muted); font-weight: normal; }
+        }
+    }
+}

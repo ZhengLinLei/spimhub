@@ -1,0 +1,15 @@
+{
+    "id": "snippets",
+    "name": "Snippets",
+    "version": "1.0.0",
+    "description": "Insert common code (functions, loops, syscalls) in MIPS or RISC-V from the command palette.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "main": "main.js",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "commands": ["snippet"],
+        "palette": ["snippet: *"]
+    }
+}

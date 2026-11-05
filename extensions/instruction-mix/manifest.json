@@ -1,0 +1,19 @@
+{
+    "id": "instruction-mix",
+    "name": "Instruction mix",
+    "version": "1.0.0",
+    "description": "After a run: how many ALU, load, store, branch and jump instructions were executed, the most used ones and the CPI.",
+    "author": "SpimHub",
+    "license": "MIT",
+    "main": "main.js",
+    "styles": "style.css",
+    "readme": "README.md",
+    "engines": { "spimhub": ">=1.1.0" },
+    "contributes": {
+        "events": ["exit", "error"],
+        "commands": ["mix"],
+        "palette": ["instruction mix: show"],
+        "status": ["mix"],
+        "panels": ["instruction mix"]
+    }
+}

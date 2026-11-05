@@ -7,8 +7,8 @@
  ========================================================================== */
 
 // Engine (src/ts/spim/browser.ts)
-declare const SPIM: typeof import('../spim/spim').default;
-type SPIMInstance = import('../spim/spim').default;
+declare const SPIM: typeof import('../engine/spim').default;
+type SPIMInstance = import('../engine/spim').default;
 
 // Example programs, injected by scripts/build.mjs from src/examples/*.asm
 declare const EXAMPLES_FILES: Record<string, string>;
@@ -25,6 +25,7 @@ declare const LZMA: {
 interface LangScope {
     meta: string[];
     builtin: string[];
+    builtinWords?: boolean;     // builtin names are whole words (RISC-V registers have no "$")
     keywords: RegExp;
     comments: RegExp;
     contains: {

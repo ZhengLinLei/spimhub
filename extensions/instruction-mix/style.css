@@ -1,0 +1,10 @@
+.mix { padding: 10px; }
+.mix .mix-cols { display: flex; flex-wrap: wrap; gap: 24px; margin: 8px 0; }
+.mix .mix-cols > div { flex: 1; min-width: 260px; }
+.mix h4 { margin: 6px 0; font-weight: bold; }
+.mix table { width: 100%; border-collapse: collapse; }
+.mix td { padding: 3px 6px; white-space: nowrap; }
+.mix .mix-n { text-align: right; }
+.mix .mix-bar { width: 60%; }
+.mix .mix-bar i { display: block; height: 10px; background: var(--color-success-hover); min-width: 1px; }
+.mix-empty { padding: 10px; }

@@ -12,7 +12,7 @@
 
 window.addEventListener('load', () => {
 
-    const { hex } = SPIM.ISA;
+    const hex = SPIM.hex;
     const log_el = TERMINAL.main.querySelector('.terminal-log');
     const escape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -250,26 +250,30 @@ window.addEventListener('load', () => {
         pause: { desc: 'pause the execution (Ctrl + C)', fn: () => RUNNER.stop() },
         reset: { desc: 'reset registers and memory', fn: () => RUNNER.reset() },
         reg: {
-            args: '[$reg ...]',
+            args: '[reg ...]',
             desc: 'print registers',
             fn: (names) => {
-                let cpu = RUNNER.spim.cpu;
-                let all = SPIM.REGISTERS;
+                let spim = RUNNER.spim;
+                let cpu = spim.cpu;
+                let all = spim.registers;
                 if (!names.length) {
                     for (let i = 0; i < 32; i += 4) {
-                        print([0, 1, 2, 3].map(k => `${('$' + all[i + k]).padEnd(5)} ${hex(cpu.r[i + k])}`).join('   '));
+                        print([0, 1, 2, 3].map(k => `${all[i + k].padEnd(6)} ${hex(cpu.r[i + k])}`).join('   '));
                     }
-                    print(`pc    ${hex(cpu.pc)}   hi    ${hex(cpu.hi)}   lo    ${hex(cpu.lo)}`);
+                    print(`pc     ${hex(cpu.pc)}` + (cpu.arch === 'mips' ? `   hi     ${hex(cpu.hi)}   lo     ${hex(cpu.lo)}` : ''));
                     return;
                 }
                 names.forEach(n => {
                     let key = n.replace(/^\$/, '').toLowerCase();
                     if (key === 'pc') return print(`pc = ${hex(cpu.pc)}`);
-                    if (key === 'hi' || key === 'lo') return print(`${key} = ${hex(cpu[key])}`);
-                    if (/^f\d+$/.test(key) && +key.slice(1) < 32) return print(`$${key} = ${hex(cpu.fi[+key.slice(1)])} (${cpu.ff[+key.slice(1)]})`);
-                    let i = SPIM.ISA.GPR[key];
+                    if (cpu.arch === 'mips') {
+                        if (key === 'hi' || key === 'lo') return print(`${key} = ${hex(cpu[key])}`);
+                        if (/^f\d+$/.test(key) && +key.slice(1) < 32) return print(`$${key} = ${hex(cpu.fi[+key.slice(1)])} (${cpu.ff[+key.slice(1)]})`);
+                    }
+                    let table: Record<string, number> = cpu.arch === 'mips' ? SPIM.ISA.GPR : SPIM.RISCV.XREG;
+                    let i = table[key];
                     if (i === undefined) return error(`reg: unknown register ${n}`);
-                    print(`$${all[i]} = ${hex(cpu.r[i])} (${cpu.r[i]})`);
+                    print(`${all[i]} = ${hex(cpu.r[i])} (${cpu.r[i]})`);
                 });
             },
         },
@@ -316,6 +320,24 @@ window.addEventListener('load', () => {
                 Object.entries(symbols).sort((a, b) => a[1] - b[1]).forEach(([n, a]) => print(`${hex(a)}  ${n}`));
             },
         },
+        pipeline: {
+            args: '[forwarding on|off] [branch id|ex]',
+            desc: 'open the pipeline view / change its options',
+            fn: (args) => {
+                let spim = RUNNER.spim;
+                for (let i = 0; i < args.length; i += 2) {
+                    let [key, value] = [args[i], (args[i + 1] || '').toLowerCase()];
+                    if (key === 'forwarding' && (value === 'on' || value === 'off')) spim.setPipelineOptions({ forwarding: value === 'on' });
+                    else if (key === 'branch' && (value === 'id' || value === 'ex')) spim.setPipelineOptions({ branchStage: value === 'id' ? 'ID' : 'EX' });
+                    else return error(`pipeline: unknown option "${args.slice(i, i + 2).join(' ')}"`);
+                }
+                let st = spim.pipeline.stats();
+                let o = spim.pipeline.options;
+                print(`forwarding ${o.forwarding ? 'on' : 'off'}, branches in ${o.branchStage}`);
+                print(`${st.instructions} instructions, ${st.cycles} cycles, CPI ${st.cpi.toFixed(2)}, ${st.stalls} stalls, ${st.flushes} flushes, ${st.forwards} forwards`);
+                PIPELINE.open();
+            },
+        },
         theme: {
             args: '[light|dark]',
             desc: 'change the theme',
@@ -323,7 +345,18 @@ window.addEventListener('load', () => {
         },
         echo: { args: '<text>', desc: 'print text', fn: (args) => print(args.join(' ')) },
         history: { desc: 'show the command history', fn: () => TERMINAL.history.forEach((c, i) => print(`${String(i + 1).padStart(4)}  ${c}`)) },
-        version: { desc: 'print the version', fn: () => print(`SpimHub ${SPIM.VERSION} · MIPS32 assembler & simulator`) },
+        version: { desc: 'print the version', fn: () => print(`SpimHub ${SPIM.VERSION} · MIPS32 / RV32IM assembler, simulator & pipeline`) },
+    };
+
+    /**
+     * Adds a command (used by the extensions). Returns a function that removes it.
+     */
+    TERMINAL.register = (name: string, cmd: { args?: string; desc: string; fn: (args: string[]) => void }) => {
+        name = String(name).toLowerCase();
+        if (!/^[a-z][\w-]*$/.test(name)) throw new Error(`invalid command name "${name}"`);
+        if (COMMANDS[name]) throw new Error(`the command "${name}" already exists`);
+        COMMANDS[name] = cmd;
+        return () => { if (COMMANDS[name] === cmd) delete COMMANDS[name]; };
     };
 
     // Assemble a file of the virtual filesystem (or the active one)

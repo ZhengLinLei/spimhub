@@ -495,7 +495,7 @@ test('reports assembler errors with line numbers', () => {
 //  Examples
 // ============================================================
 test('bundled examples run', () => {
-    const dir = path.join(__dirname, '..', 'src', 'examples');
+    const dir = path.join(__dirname, '..', 'src', 'examples', 'mips');
     const expected = {
         'hello.asm': [[], 'Hello, World!\n'],
         'factorial.asm': [['10'], 'Enter a number: 10! = 3628800\n'],

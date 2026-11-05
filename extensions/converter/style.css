@@ -1,0 +1,13 @@
+.conv { padding: 10px; }
+.conv .conv-input {
+    width: 100%;
+    padding: 8px;
+    border: .5px solid rgba(var(--color-invert-rgb), .3);
+    background: var(--color-primary);
+    outline: none;
+}
+.conv .conv-input.invalid { border-color: var(--color-error); }
+.conv .conv-table { margin-top: 8px; border-collapse: collapse; width: 100%; }
+.conv .conv-table td { padding: 5px 8px; border-bottom: .5px solid rgba(var(--color-invert-rgb), .15); white-space: pre; }
+.conv .conv-value { cursor: copy; }
+.conv .conv-value:hover { background: var(--color-helper); }

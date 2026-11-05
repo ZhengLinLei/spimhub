@@ -1,7 +1,7 @@
 /* =========================================================================
-    SpimHub - A MIPS Assembly IDE for Web Browsers
+    SpimHub - A MIPS / RISC-V Assembly IDE for Web Browsers
 
-    Path: src/ts/spim/isa.ts
+    Path: src/ts/engine/mips/isa.ts
 
     MIPS32 instruction set tables shared by the assembler, the disassembler
     and the CPU. Every real instruction is described once here, so the
@@ -11,6 +11,8 @@
     © 2026 ZhengLinLei <zheng9112003@icloud.com>
     MIT License
  ========================================================================== */
+
+import type { Deps } from '../pipeline/pipeline';
 
 // ================== //
 //  Registers         //
@@ -262,4 +264,126 @@ export const disassemble = (word: number, pc = 0): string => {
         }
     });
     return parts.length ? `${e.name} ${parts.join(', ')}` : e.name;
+};
+
+// ================== //
+//  Dependencies      //
+// ================== //
+/*
+    Registers read / written by an instruction, used by the pipeline model
+    (src/ts/engine/pipeline/pipeline.ts) to find data hazards.
+
+    Register ids:  0-31 GPR,  32 hi,  33 lo,  34-65 $f0-$f31,  66 fcc,  67 cop0
+*/
+export const REG_HI = 32, REG_LO = 33, REG_F = 34, REG_FCC = 66, REG_CP0 = 67;
+
+export const regName = (id: number): string => {
+    if (id < 32) return `$${GPR_NAMES[id]}`;
+    if (id === REG_HI) return 'hi';
+    if (id === REG_LO) return 'lo';
+    if (id >= REG_F && id < REG_F + 32) return `$f${id - REG_F}`;
+    if (id === REG_FCC) return 'fcc';
+    return 'cop0';
+};
+
+export const deps = (word: number): Deps => {
+    const f = decode(word);
+    const e = f.entry;
+    const d: Deps = { reads: [], writes: [], kind: 'alu' };
+    if ((word >>> 0) === 0) { d.kind = 'nop'; return d; }
+    if (!e) { d.kind = 'other'; return d; }
+    const { rs, rt, rd } = f;
+    const fpr = (n: number, dbl: boolean) => dbl ? [REG_F + n, REG_F + n + 1] : [REG_F + n];
+    const mem = (size: number) => { d.mem = { base: rs, offset: f.simm, size }; };
+    const load = (size: number, reads: number[], writes: number[]) => {
+        mem(size); d.reads = reads; d.writes = writes; d.kind = 'load';
+    };
+    const store = (size: number, data: number[]) => {
+        mem(size); d.reads = [rs, ...data]; d.storeData = data; d.kind = 'store';
+    };
+
+    switch (e.kind) {
+        case 'R':
+            switch (e.name) {
+                case 'jr': d.reads = [rs]; d.kind = 'jumpr'; break;
+                case 'jalr': d.reads = [rs]; d.writes = [rd]; d.kind = 'jumpr'; break;
+                case 'syscall': d.reads = [2, 4, 5, 6]; d.writes = [2]; d.kind = 'syscall'; break;
+                case 'break': d.kind = 'other'; break;
+                case 'mfhi': d.reads = [REG_HI]; d.writes = [rd]; break;
+                case 'mflo': d.reads = [REG_LO]; d.writes = [rd]; break;
+                case 'mthi': d.reads = [rs]; d.writes = [REG_HI]; break;
+                case 'mtlo': d.reads = [rs]; d.writes = [REG_LO]; break;
+                case 'mult': case 'multu': case 'div': case 'divu':
+                    d.reads = [rs, rt]; d.writes = [REG_HI, REG_LO]; d.kind = 'mul'; break;
+                case 'sll': case 'srl': case 'sra': d.reads = [rt]; d.writes = [rd]; break;
+                case 'movz': case 'movn': d.reads = [rs, rt, rd]; d.writes = [rd]; break;
+                case 'teq': case 'tne': d.reads = [rs, rt]; break;
+                default: d.reads = [rs, rt]; d.writes = [rd];
+            }
+            break;
+        case 'RI':
+            d.reads = [rs]; d.kind = 'branch';
+            if (e.name.endsWith('al')) d.writes = [31];
+            break;
+        case 'I':
+            switch (e.name) {
+                case 'j': d.kind = 'jump'; break;
+                case 'jal': d.kind = 'jump'; d.writes = [31]; break;
+                case 'beq': case 'bne': d.reads = [rs, rt]; d.kind = 'branch'; break;
+                case 'blez': case 'bgtz': d.reads = [rs]; d.kind = 'branch'; break;
+                case 'lui': d.writes = [rt]; break;
+                case 'lb': case 'lbu': load(1, [rs], [rt]); break;
+                case 'lh': case 'lhu': load(2, [rs], [rt]); break;
+                case 'lw': case 'll': load(4, [rs], [rt]); break;
+                case 'lwl': case 'lwr': load(4, [rs, rt], [rt]); break;
+                case 'sb': store(1, [rt]); break;
+                case 'sh': store(2, [rt]); break;
+                case 'sw': case 'swl': case 'swr': store(4, [rt]); break;
+                case 'sc': store(4, [rt]); d.writes = [rt]; break;
+                case 'lwc1': load(4, [rs], fpr(rt, false)); break;
+                case 'ldc1': load(8, [rs], fpr(rt, true)); break;
+                case 'swc1': store(4, fpr(rt, false)); break;
+                case 'sdc1': store(8, fpr(rt, true)); break;
+                default: d.reads = [rs]; d.writes = [rt];     // ALU with immediate
+            }
+            break;
+        case 'S2':
+            if (e.name === 'mul') { d.reads = [rs, rt]; d.writes = [rd]; d.kind = 'mul'; }
+            else if (e.name === 'clz' || e.name === 'clo') { d.reads = [rs]; d.writes = [rd]; }
+            else { d.reads = [rs, rt, REG_HI, REG_LO]; d.writes = [REG_HI, REG_LO]; d.kind = 'mul'; }
+            break;
+        case 'F': {
+            const dbl = (spec: string) => {
+                const cvt = /^cvt\.([sdw])\.([sdw])$/.exec(e.name);
+                if (cvt) return (spec === 'D' ? cvt[1] : cvt[2]) === 'd';
+                if (/\.w\.d$/.test(e.name)) return spec !== 'D';
+                return e.name.endsWith('.d');
+            };
+            if (e.name.startsWith('c.')) {
+                d.reads = [...fpr(f.fs, dbl('S')), ...fpr(f.ft, dbl('T'))];
+                d.writes = [REG_FCC];
+            } else {
+                d.reads = fpr(f.fs, dbl('S'));
+                if (e.ops.includes('T')) d.reads.push(...fpr(f.ft, dbl('T')));
+                d.writes = fpr(f.fd, dbl('D'));
+            }
+            d.kind = 'fpu';
+            break;
+        }
+        case 'BC': d.reads = [REG_FCC]; d.kind = 'branch'; break;
+        case 'FM':
+            if (e.name === 'mfc1') { d.reads = [REG_F + f.fs]; d.writes = [rt]; }
+            else { d.reads = [rt]; d.writes = [REG_F + f.fs]; }
+            break;
+        case 'C0':
+            if (e.name === 'mfc0') { d.reads = [REG_CP0]; d.writes = [rt]; }
+            else { d.reads = [rt]; d.writes = [REG_CP0]; }
+            break;
+        case 'X': d.reads = [REG_CP0]; d.kind = 'jumpr'; break;   // eret
+    }
+    // $zero is never a dependency
+    d.reads = d.reads.filter(r => r !== 0);
+    d.writes = d.writes.filter(r => r !== 0);
+    if (d.storeData) d.storeData = d.storeData.filter(r => r !== 0);
+    return d;
 };
