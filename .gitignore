@@ -40,3 +40,5 @@ highlight
 
 
 test.*
+# build output (docs/ is committed: GitHub Pages)
+/dist

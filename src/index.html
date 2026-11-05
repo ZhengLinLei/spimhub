@@ -5,51 +5,35 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="apple-touch-icon" href="./resource/logo/apple-icon.png">
-    <link rel="apple-touch-icon" sizes="57x57" href="./resource/logo/apple-icon-57x57.png">
-    <link rel="apple-touch-icon" sizes="60x60" href="./resource/logo/apple-icon-60x60.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="./resource/logo/apple-icon-72x72.png">
-    <link rel="apple-touch-icon" sizes="76x76" href="./resource/logo/apple-icon-76x76.png">
-    <link rel="apple-touch-icon" sizes="114x114" href="./resource/logo/apple-icon-114x114.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="./resource/logo/apple-icon-120x120.png">
-    <link rel="apple-touch-icon" sizes="144x144" href="./resource/logo/apple-icon-144x144.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./resource/logo/apple-icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="./resource/logo/apple-icon-180x180.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="./resource/logo/android-icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="./resource/logo/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="./resource/logo/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./resource/logo/favicon-16x16.png">
-    <link rel="shortcut icon" href="./resource/logo/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="./img/apple-icon.png">
+    <link rel="apple-touch-icon" sizes="57x57" href="./img/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="./img/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="./img/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="./img/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="./img/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="./img/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="./img/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./img/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./img/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./img/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="./img/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./img/favicon-16x16.png">
+    <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon">
     <!-- <link rel="manifest" href="./manifest.json"> -->
     <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="./resource/logo/ms-icon-144x144.png">
+    <meta name="msapplication-TileImage" content="./img/ms-icon-144x144.png">
     <meta name="theme-color" content="#ffffff">
     <!-- FONT -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&family=Red+Hat+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- CSS -->
-    <link rel="stylesheet" href="./css/format.css">
-    <link rel="stylesheet" href="./css/style.css">
-    <!-- JS -->
-    <!-- highlight.js -->
-    <script src="./js/format.js"></script>
-    <!-- mipsasm.js -->
-    <script src="./js/lang/mips.js"></script>
-    <!-- file_saver.js -->
-    <script src="./js/file_saver.js"></script>
-    <!-- lzma_worker.js -->
-    <script src="./js/lzma_worker.js"></script>
-    <!-- html2canvas.js -->
-    <script src="./js/html2canvas.js"></script>
-    <!-- spim.js -->
-    <script src="./js/spim.js"></script>
-    <!-- index.js -->
-    <script src="./js/index.js"></script>
-    <!-- file_searcher.js -->
-    <script src="./js/file_searcher.js"></script>
+    <!-- CSS: src/scss -> style.css (npm run build) -->
+    <link rel="stylesheet" href="./style.css">
+    <!-- JS: src/vendor + src/ts -> script.js (npm run build) -->
+    <script src="./script.js"></script>
     <!-- TITTLE -->
-    <title>SpimHub - Mips CPU Simulator</title>
+    <title>SpimHub - MIPS Assembly IDE</title>
 </head>
 <body>
     <header class="bg-secondary d-flex">
@@ -69,7 +53,7 @@
                     </li>
                     <hr>
                     <li>
-                        <a href="#">
+                        <a href="https://github.com/ZhengLinLei/spimhub/blob/main/LICENSE" target="_blank">
                             <span>[license]</span>
                         </a>
                     </li>
@@ -79,7 +63,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="javascript:set_theme('toggle')">
                             <span>[settings]</span>
                         </a>
                     </li>
@@ -87,13 +71,13 @@
                     <li>
                         <a href="#">
                             <span>[version]</span>
-                            <span class="muted">v1.0.0b</span>
+                            <span class="muted">v1.0.0</span>
                         </a>
                     </li>
                     <li>
                         <a href="#">
                             <span>[built]</span>
-                            <span class="muted">52b48-50b/1</span>
+                            <span class="muted spimhub-build">docker/1</span>
                         </a>
                     </li>
                     <li>
@@ -172,7 +156,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_save('all')">
                                 <span>[save all]</span>
                                 <span class="muted">
                                     <span class="__s-win">Alt + A</span>
@@ -181,7 +165,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_close_all()">
                                 <span>[close all]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + W</span>
@@ -223,7 +207,7 @@
                     <a>[edit]</a>
                     <ul class="pop-menu">
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_edit('undo')">
                                 <span>[undo]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + Z</span>
@@ -232,7 +216,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_edit('redo')">
                                 <span>[redo]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + Y</span>
@@ -242,7 +226,7 @@
                         </li>
                         <hr>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_edit('cut')">
                                 <span>[cut]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + X</span>
@@ -251,7 +235,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_edit('copy')">
                                 <span>[copy]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + C</span>
@@ -260,7 +244,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_edit('paste')">
                                 <span>[paste]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + V</span>
@@ -270,7 +254,7 @@
                         </li>
                         <hr>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_find()">
                                 <span>[find]</span>
                                 <span class="muted">
                                     <span class="__s-win">Ctrl + F</span>
@@ -279,7 +263,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_find(true)">
                                 <span>[replace]</span>
                                 <span class="muted">
                                     <span class="__s-win">Alt + F</span>
@@ -321,23 +305,33 @@
                         </li>
                         <hr>
                         <li>
-                            <a href="./">
+                            <a href="javascript:toggle_opt(1, 'search')">
                                 <span>[search]</span>
                                 <span class="muted"></span>
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:toggle_opt(1, 'extensions')">
                                 <span>[extensions]</span>
                                 <span class="muted"></span>
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:__group_h.open_group('runner')">
                                 <span>[debug]</span>
                                 <span class="muted">
                                     <span class="__s-win">Alt + D</span>
                                     <span class="__s-mac">⌥  + D</span>
+                                </span>
+                            </a>
+                        </li>
+                        <hr>
+                        <li>
+                            <a href="javascript:set_theme('toggle')">
+                                <span>[theme]</span>
+                                <span class="muted">
+                                    <span class="__s-win">Alt + K</span>
+                                    <span class="__s-mac">⌥  + K</span>
                                 </span>
                             </a>
                         </li>
@@ -362,10 +356,10 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:RUNNER.run_active()">
                                 <span>[run file]</span>
                                 <span class="muted">
-                                    <span class="__s-win">Alt + R</span>
+                                    <span class="__s-win">Alt + ⇧ + R</span>
                                     <span class="__s-mac">⌥  + ⇧ + R</span>
                                 </span>
                             </a>
@@ -394,7 +388,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="https://github.com/ZhengLinLei/spimhub/archive/refs/heads/spimhub.zip">
                                 <span>[download spimhub]</span>
                                 <span class="muted"></span>
                             </a>
@@ -496,7 +490,7 @@
                         </li>
                         <hr>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_save('file')">
                                 <span>[save]</span>
                                 <span class="muted">
                                     <span class="__s-win">Alt + S</span>
@@ -505,7 +499,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:html_save('all')">
                                 <span>[save all]</span>
                                 <span class="muted">
                                     <span class="__s-win">Alt + A</span>
@@ -662,8 +656,8 @@
                 </div>
                 <div class="explorer">
                     <div>
-                        <input type="text" id="content-search-file" value="a" placeholder="search">
-                        <input type="text" id="content-replace-file" value=" " placeholder="replace">
+                        <input type="text" id="content-search-file" placeholder="search">
+                        <input type="text" id="content-replace-file" placeholder="replace">
                     </div>
                     <div class="d-flex both-side find-replace-btn">
                         <a id="content-find-btn" class="bg-success">[find]</a>
@@ -754,7 +748,7 @@
             <section id="file-editor-extra-menu" class="menu">
                 <ul class="pop-menu">
                     <li>
-                        <a href="./">
+                        <a href="javascript:html_edit('undo')">
                             <span>[undo]</span>
                             <span class="muted">
                                 <span class="__s-win">Ctrl + Z</span>
@@ -763,7 +757,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="./">
+                        <a href="javascript:html_edit('redo')">
                             <span>[redo]</span>
                             <span class="muted">
                                 <span class="__s-win">Ctrl + Y</span>
@@ -773,7 +767,7 @@
                     </li>
                     <hr>
                     <li>
-                        <a href="./">
+                        <a href="javascript:html_edit('cut')">
                             <span>[cut]</span>
                             <span class="muted">
                                 <span class="__s-win">Ctrl + X</span>
@@ -782,7 +776,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="./">
+                        <a href="javascript:html_edit('copy')">
                             <span>[copy]</span>
                             <span class="muted">
                                 <span class="__s-win">Ctrl + C</span>
@@ -791,7 +785,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="./">
+                        <a href="javascript:html_edit('paste')">
                             <span>[paste]</span>
                             <span class="muted">
                                 <span class="__s-win">Ctrl + V</span>
@@ -827,19 +821,26 @@
             <!-- RUNNER -->
             <section id="main-runner" class="group-m">
                 <header class="cap">
-                    <div class="title"> >_ mips executer</div>
+                    <div class="title"> >_ mips executer <span class="muted runner-file"></span></div>
                     <div>
                         <div class="run d-flex">
-                            <a href="./" class="run-step">[run step]</a>
-                            <a href="./" class="run-all">[run all]</a>
+                            <span class="a runner-state">[idle]</span>
+                            <a href="javascript:RUNNER.assemble()" class="assemble" title="Assemble the active file (Alt + Shift + A)">[assemble]</a>
+                            <a href="javascript:RUNNER.reset()" class="reset" title="Reset registers and memory">[reset]</a>
+                            <a href="javascript:RUNNER.stop()" class="pause" title="Pause the execution">[pause]</a>
+                            <a href="javascript:RUNNER.step()" class="run-step" title="Run one instruction (F10)">[run step]</a>
+                            <a href="javascript:RUNNER.run()" class="run-all" title="Run until a breakpoint or the end (F5)">[run all]</a>
                         </div>
                     </div>
                 </header>
                 <main>
                     <section id="data-section">
                         <div class="data-text">
-                            <header class="cap">
-                                <div> >_ text segment</div>
+                            <header class="cap cap-tabs">
+                                <div> >_ text segment <span class="muted text-info"></span></div>
+                                <div class="d-flex">
+                                    <a href="javascript:RUNNER.scroll_pc()" title="Scroll to the current instruction">[pc]</a>
+                                </div>
                             </header>
                             <main class="table-main">
                                 <table>
@@ -853,24 +854,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="text-segment">
-                                        <tr>
-                                            <td>
-                                                <input type="checkbox">
-                                            </td>
-                                            <td>0x00400000</td>
-                                            <td>0x00000000</td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <input type="checkbox">
-                                            </td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                        </tr>
+                                        <!-- generated by runner.js -->
                                     </tbody>
                                 </table>
                             </main>
@@ -878,8 +862,14 @@
                         <div class="data-data">
                             <!-- Scroll y -->
                             <div class="scroll-y data-segment"></div>
-                            <header class="cap">
-                                <div> >_ data segment</div>
+                            <header class="cap cap-tabs">
+                                <div> >_ data segment <span class="muted data-info"></span></div>
+                                <div class="d-flex">
+                                    <a href="javascript:RUNNER.open_segment('data')" class="segment-tab data active">[.data]</a>
+                                    <a href="javascript:RUNNER.open_segment('heap')" class="segment-tab heap">[heap]</a>
+                                    <a href="javascript:RUNNER.open_segment('stack')" class="segment-tab stack">[stack]</a>
+                                    <a href="javascript:RUNNER.toggle_ascii()" class="segment-ascii" title="Show values as ASCII">[ascii]</a>
+                                </div>
                             </header>
                             <main class="table-main">
                                 <table>
@@ -893,55 +883,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="data-segment">
-                                        <tr>
-                                            <td>0x10010000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>0x10010010</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>0x10010020</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>0x10010030</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>0x10010040</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>0x10010050</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>...</td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                            <td>...</td>
-                                        </tr>
+                                        <!-- generated by runner.js -->
                                     </tbody>
                                 </table>
                             </main>
@@ -959,6 +901,9 @@
                                 <a class="tab coproc0"
                                     href="javascript:__group_register.open_tab('coproc0')">[coproc0]</a>
                             </div>
+                            <div>
+                                <a class="register-format" href="javascript:RUNNER.toggle_format()" title="Switch between hexadecimal and decimal">[hex]</a>
+                            </div>
                         </header>
                         <main>
                             <section class="runner-register table-main active">
@@ -971,181 +916,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>[$zero]</td>
-                                            <td>$0</td>
-                                            <td>0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$at]</td>
-                                            <td>$1</td>
-                                            <td class="$r1">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$v0]</td>
-                                            <td>$2</td>
-                                            <td class="$r2">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$v1]</td>
-                                            <td>$3</td>
-                                            <td class="$r3">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$a0]</td>
-                                            <td>$4</td>
-                                            <td class="$r4">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$a1]</td>
-                                            <td>$5</td>
-                                            <td class="$r5">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$a2]</td>
-                                            <td>$6</td>
-                                            <td class="$r6">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$a3]</td>
-                                            <td>$7</td>
-                                            <td class="$r7">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t0]</td>
-                                            <td>$8</td>
-                                            <td class="$r8">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t1]</td>
-                                            <td>$9</td>
-                                            <td class="$r9">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t2]</td>
-                                            <td>$10</td>
-                                            <td class="$r10">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t3]</td>
-                                            <td>$11</td>
-                                            <td class="$r11">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t4]</td>
-                                            <td>$12</td>
-                                            <td class="$r12">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t5]</td>
-                                            <td>$13</td>
-                                            <td class="$r13">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t6]</td>
-                                            <td>$14</td>
-                                            <td class="$r14">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t7]</td>
-                                            <td>$15</td>
-                                            <td class="$r15">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s0]</td>
-                                            <td>$16</td>
-                                            <td class="$r16">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s1]</td>
-                                            <td>$17</td>
-                                            <td class="$r17">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s2]</td>
-                                            <td>$18</td>
-                                            <td class="$r18">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s3]</td>
-                                            <td>$19</td>
-                                            <td class="$r19">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s4]</td>
-                                            <td>$20</td>
-                                            <td class="$r20">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s5]</td>
-                                            <td>$21</td>
-                                            <td class="$r21">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s6]</td>
-                                            <td>$22</td>
-                                            <td class="$r22">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$s7]</td>
-                                            <td>$23</td>
-                                            <td class="$r23">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t8]</td>
-                                            <td>$24</td>
-                                            <td class="$r24">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$t9]</td>
-                                            <td>$25</td>
-                                            <td class="$r25">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$k0]</td>
-                                            <td>$26</td>
-                                            <td class="$r26">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$k1]</td>
-                                            <td>$27</td>
-                                            <td class="$r27">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$gp]</td>
-                                            <td>$28</td>
-                                            <td class="$r28">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$sp]</td>
-                                            <td>$29</td>
-                                            <td class="$r29">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$fp]</td>
-                                            <td>$30</td>
-                                            <td class="$r30">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$ra]</td>
-                                            <td>$31</td>
-                                            <td class="$r31">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[pc]</td>
-                                            <td></td>
-                                            <td class="$r31">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[hi]</td>
-                                            <td></td>
-                                            <td class="$r31">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[lo]</td>
-                                            <td></td>
-                                            <td class="$r31">0x00000000</td>
-                                        </tr>
+                                        <!-- generated by runner.js -->
                                     </tbody>
                                 </table>
                             </section>
@@ -1159,167 +930,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>[$f0]</td>
-                                            <td class="$fs0">0x00000000</td>
-                                            <td class="$fd0">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f1]</td>
-                                            <td class="$fs1">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f2]</td>
-                                            <td class="$fs2">0x00000000</td>
-                                            <td class="$fd2">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f3]</td>
-                                            <td class="$fs3">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f4]</td>
-                                            <td class="$fs4">0x00000000</td>
-                                            <td class="$fd4">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f5]</td>
-                                            <td class="$fs5">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f6]</td>
-                                            <td class="$fs6">0x00000000</td>
-                                            <td class="$fd6">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f7]</td>
-                                            <td class="$fs7">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f8]</td>
-                                            <td class="$fs8">0x00000000</td>
-                                            <td class="$fd8">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f9]</td>
-                                            <td class="$fs9">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f10]</td>
-                                            <td class="$fs10">0x00000000</td>
-                                            <td class="$fd10">0x0000000000000000</td>
-                                        </tr>
-
-                                        <tr>
-                                            <td>[$f11]</td>
-                                            <td class="$fs11">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f12]</td>
-                                            <td class="$fs12">0x00000000</td>
-                                            <td class="$fd12">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f13]</td>
-                                            <td class="$fs13">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f14]</td>
-                                            <td class="$fs14">0x00000000</td>
-                                            <td class="$fd14">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f15]</td>
-                                            <td class="$fs15">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f16]</td>
-                                            <td class="$fs16">0x00000000</td>
-                                            <td class="$fd16">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f17]</td>
-                                            <td class="$fs17">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f18]</td>
-                                            <td class="$fs18">0x00000000</td>
-                                            <td class="$fd18">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f19]</td>
-                                            <td class="$fs19">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f20]</td>
-                                            <td class="$fs20">0x00000000</td>
-                                            <td class="$fd20">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f21]</td>
-                                            <td class="$fs21">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f22]</td>
-                                            <td class="$fs22">0x00000000</td>
-                                            <td class="$fd22">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f23]</td>
-                                            <td class="$fs23">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f24]</td>
-                                            <td class="$fs24">0x00000000</td>
-                                            <td class="$fd24">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f25]</td>
-                                            <td class="$fs25">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f26]</td>
-                                            <td class="$fs26">0x00000000</td>
-                                            <td class="$fd26">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f27]</td>
-                                            <td class="$fs27">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f28]</td>
-                                            <td class="$fs28">0x00000000</td>
-                                            <td class="$fd28">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f29]</td>
-                                            <td class="$fs29">0x00000000</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f30]</td>
-                                            <td class="$fs30">0x00000000</td>
-                                            <td class="$fd30">0x0000000000000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[$f31]</td>
-                                            <td class="$fs31">0x00000000</td>
-                                            <td></td>
-                                        </tr>
+                                        <!-- generated by runner.js -->
                                     </tbody>
                                 </table>
                             </section>
@@ -1333,26 +944,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>[vaddr]</td>
-                                            <td>$8</td>
-                                            <td class="$vaddr">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[status]</td>
-                                            <td>$12</td>
-                                            <td class="$status">0x0000ff11</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[cause]</td>
-                                            <td>$13</td>
-                                            <td class="$cause">0x00000000</td>
-                                        </tr>
-                                        <tr>
-                                            <td>[epc]</td>
-                                            <td>$14</td>
-                                            <td class="$epc">0x00000000</td>
-                                        </tr>
+                                        <!-- generated by runner.js -->
                                     </tbody>
                                 </table>
                             </section>
@@ -1363,20 +955,20 @@
             <section id="execute-file-extra-menu" class="menu">
                 <ul class="pop-menu">
                     <li>
-                        <a href="./">
+                        <a href="javascript:RUNNER.download_logs()">
                             <span>[download logs]</span>
                             <span class="muted"></span>
                         </a>
                     </li>
                     <li>
-                        <a href="./">
+                        <a href="javascript:RUNNER.show_breakpoints()">
                             <span>[show bkpt]</span>
                             <span class="muted"></span>
                         </a>
                     </li>
                     <hr>
                     <li>
-                        <a href="./">
+                        <a href="javascript:RUNNER.reset()">
                             <span>[reset]</span>
                             <span class="muted"></span>
                         </a>
@@ -1413,56 +1005,58 @@
                         </div>
                     </section>
                     <section id="console-main" class="window">
-                        <pre class="console-log">
-                        </pre>
+                        <pre class="console-log"></pre>
                     </section>
                     <section id="output-main" class="window">
-                        <pre class="output-log">
-                        </pre>
+                        <pre class="output-log"></pre>
+                        <div class="output-input">
+                            <span class="__f_builtin output-input-kind">[stdin]</span>
+                            <input type="text" id="output-input" spellcheck="false" autocomplete="off" placeholder="program input + [enter]">
+                        </div>
                     </section>
                 </main>
                 <section id="terminal-extra-menu" class="menu">
                     <ul class="pop-menu">
                         <li>
-                            <a href="./">
+                            <a href="javascript:TERMINAL.select_all()">
                                 <span>[select all]</span>
                                 <span class="muted">Ctrl + A</span>
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:TERMINAL.copy()">
                                 <span>[cut]</span>
                                 <span class="muted">Ctrl + X</span>
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:TERMINAL.copy()">
                                 <span>[copy]</span>
                                 <span class="muted">Ctrl + C</span>
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:TERMINAL.paste()">
                                 <span>[paste]</span>
                                 <span class="muted">Ctrl + V</span>
                             </a>
                         </li>
                         <hr>
                         <li>
-                            <a href="./">
+                            <a href="javascript:RUNNER.stop()">
                                 <span>[kill process]</span>
                                 <span class="muted"></span>
                             </a>
                         </li>
                         <li>
-                            <a href="./">
+                            <a href="javascript:TERMINAL.clear()">
                                 <span>[clear]</span>
                                 <span class="muted"></span>
                             </a>
                         </li>
                         <hr>
                         <li>
-                            <a href="./">
+                            <a href="javascript:toggle_terminal(0)">
                                 <span>[close terminal]</span>
                                 <span class="muted"></span>
                             </a>
@@ -1613,5 +1207,3 @@
 </body>
 
 </html>
-
-</div>

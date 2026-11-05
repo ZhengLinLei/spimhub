@@ -1,0 +1,9 @@
+.git
+.claude
+node_modules
+docs
+*.log
+.DS_Store
+Dockerfile
+docker-compose.yml
+dist

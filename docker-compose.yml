@@ -1,0 +1,8 @@
+services:
+  spimhub:
+    build: .
+    image: spimhub
+    container_name: spimhub
+    ports:
+      - "8080:80"
+    restart: unless-stopped

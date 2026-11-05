@@ -1,16 +1,35 @@
 {
-  "dependencies": {
-    "grunt-cli": "^1.4.3"
+  "name": "spimhub",
+  "version": "1.0.0",
+  "description": "SpimHub - A MIPS Assembly IDE for Web Browsers: editor, MIPS32 assembler and simulator",
+  "license": "MIT",
+  "author": "ZhengLinLei <zheng9112003@icloud.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZhengLinLei/spimhub-depr.git"
+  },
+  "bin": {
+    "spimhub": "bin/spimhub.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.app.json",
+    "start": "npm run build && node scripts/serve.js",
+    "test": "npm run build && node --test test/*.test.js"
   },
   "devDependencies": {
-    "eslint": "^8.32.0",
-    "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-n": "^15.6.1",
-    "eslint-plugin-promise": "^6.1.1",
-    "grunt": "^1.5.3",
-    "grunt-contrib-concat": "^2.1.0",
-    "grunt-contrib-uglify": "^5.2.2",
-    "gruntify-eslint": "^5.0.0"
-  }
+    "@types/node": "^22.20.5",
+    "esbuild": "^0.24.2",
+    "sass": "^1.77.0",
+    "typescript": "^5.9.3"
+  },
+  "main": "dist/spim.cjs"
 }

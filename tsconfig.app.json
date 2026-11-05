@@ -1,0 +1,14 @@
+{
+  // GUI (src/ts/app): classic scripts that share the global scope,
+  // concatenated by scripts/build.mjs into docs/script.js
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": [],
+    "strict": false,
+    "noImplicitAny": false,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/ts/app"]
+}

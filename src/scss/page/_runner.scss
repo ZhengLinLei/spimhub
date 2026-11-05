@@ -1,0 +1,189 @@
+// =================
+//
+//  Runner: assembler + simulator GUI (src/js/runner.js)
+//  Terminal: commands (src/js/terminal.js)
+//
+// =================
+
+$border: #{ rgba(var(--color-invert-rgb), 0.3) };
+
+body {
+
+    // Header with tabs on the right (text / data segment)
+    header.cap.cap-tabs {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 0 0 7px;
+
+        > div:first-child {
+            padding: 7px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        a {
+            padding: 7px !important;
+            border-left: .5px solid $border;
+
+            &.active {
+                background-color: var(--color-primary);
+            }
+        }
+    }
+
+    #main-runner {
+        > .cap {
+            .title {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .run {
+                align-items: center;
+
+                > a, > span {
+                    border-left: .5px solid $border;
+                }
+                .runner-state {
+                    padding: 7px;
+                    min-width: 80px;
+                    text-align: center;
+                    background-color: var(--color-primary);
+
+                    &.bg-success { background-color: var(--color-success); }
+                    &.bg-warning { background-color: var(--color-warning); }
+                    &.bg-error { background-color: var(--color-error); color: var(--color-primary); }
+                }
+            }
+        }
+        &[state="running"] > .cap a.pause {
+            background-color: var(--color-warning);
+        }
+
+        // Text segment rows
+        #text-segment {
+            tr {
+                td:nth-child(4), td:nth-child(5) {
+                    text-align: start;
+                    white-space: pre;
+                }
+                input[type="checkbox"] {
+                    cursor: pointer;
+                }
+                &.boot td, &.kernel td {
+                    color: var(--color-muted);
+                }
+                &.bkpt td {
+                    background-color: rgba(var(--color-invert-rgb), 0.08);
+                    &:first-child {
+                        box-shadow: inset 3px 0 var(--color-error);
+                    }
+                }
+                &.pc-active td {
+                    background-color: var(--color-success);
+                    color: var(--color-invert);
+                }
+                &.pc-error td {
+                    background-color: var(--color-error);
+                    color: var(--color-primary);
+                }
+            }
+        }
+
+        // Changed registers / memory since the last step
+        td.changed {
+            background-color: var(--color-warning) !important;
+        }
+        #data-segment td.sp {
+            box-shadow: inset 0 -2px var(--color-invert);
+            font-weight: bold;
+        }
+
+        #register-section header.header-tab {
+            .register-format {
+                border-right: none;
+                border-left: .5px solid $border;
+            }
+        }
+    }
+
+    // Editor: [status] of the last assemble and lines with errors
+    .editor-window .window-header .execute > span.execute-status {
+        &.bg-success { background-color: var(--color-success) !important; }
+        &.bg-error { background-color: var(--color-error) !important; color: var(--color-primary); }
+    }
+    .editor-file {
+        .export-code code p.asm-error {
+            background-color: rgba(251, 52, 30, 0.12);
+            text-decoration: underline wavy var(--color-error);
+            text-underline-offset: 3px;
+        }
+        .line-numbers-rows > span.asm-error:before {
+            background-color: var(--color-error) !important;
+            color: var(--color-primary) !important;
+        }
+    }
+
+    // Terminal windows
+    #terminal {
+        > main > section {
+            overflow: auto;
+
+            pre {
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+        }
+        #terminal-main .terminal-input .terminal #terminal-caret {
+            border-color: var(--color-invert);
+        }
+        #output-main {
+            .output-input {
+                display: none;
+                align-items: center;
+                margin-top: 5px;
+
+                &.active {
+                    display: flex;
+                }
+                .output-input-kind {
+                    font-weight: bold;
+                    white-space: nowrap;
+                }
+                input {
+                    flex: 1;
+                    border: 0;
+                    margin-left: 10px;
+                    padding: 2px 5px;
+                    outline: none;
+                    background-color: var(--color-helper);
+                    border-bottom: .5px solid var(--color-invert);
+                }
+            }
+        }
+        #console-main .console-line {
+            padding: 1px 0 1px 7px;
+            border-left: 3px solid transparent;
+
+            &.error {
+                border-color: var(--color-error);
+                color: var(--color-error);
+            }
+            &.warning {
+                border-color: var(--color-warning);
+            }
+            &.success {
+                border-color: var(--color-success);
+            }
+        }
+    }
+}
+
+// Dark theme contrast (the error red is darker in dark mode)
+html[theme="dark"] body {
+    #warning, .runner-state.bg-error, .execute-status.bg-error, #text-segment tr.pc-error td {
+        color: #ffffff !important;
+    }
+    #terminal #console-main .console-line.error, .text-error {
+        color: #ff6b5b;
+    }
+}
