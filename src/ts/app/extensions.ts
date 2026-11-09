@@ -83,7 +83,7 @@ window.addEventListener('load', () => {
         // Same origin: Docker / npm start serve the repository folder extensions/
         { url: './extensions/', name: 'local', enabled: true, builtin: true },
         // GitHub (works from GitHub Pages)
-        { url: 'https://raw.githubusercontent.com/ZhengLinLei/spimhub-depr/main/extensions/', name: 'github', enabled: true, builtin: true },
+        { url: 'https://raw.githubusercontent.com/ZhengLinLei/spimhub/main/extensions/', name: 'github', enabled: true, builtin: true },
     ];
     const ID = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
@@ -180,6 +180,9 @@ window.addEventListener('load', () => {
             manifest,
             version: SPIM.VERSION,
             SPIM,
+            // Language of the interface (en, es, pt, it, fr); event 'lang' when it changes
+            get lang() { return I18N.lang; },
+            t: (texts: Record<string, string>) => texts[I18N.lang] ?? texts.en ?? Object.values(texts)[0] ?? '',
 
             // ---- Events: ready, assemble, run, step, exit, error, output, file-open, file-save, theme
             on: (event: string, fn: (data?: any) => void) => track(HUB.on(event, fn)),

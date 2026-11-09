@@ -199,7 +199,7 @@ body {
         .sb-file { overflow: hidden; text-overflow: ellipsis; color: var(--color-invert-muted); }
         .sb-saved { color: var(--color-muted); }
         .text-warning-strong { color: #e8590c; }
-        .sb-ext { padding: 0; a, span { border-left: .5px solid $soft; } }
+        .sb-ext { display: flex; padding: 0; a, span { border-left: .5px solid $soft; } }
         .sb-state { border-left: .5px solid $soft; }
         .bg-success { background-color: var(--color-success); }
         .bg-warning { background-color: var(--color-warning); color: #000; }

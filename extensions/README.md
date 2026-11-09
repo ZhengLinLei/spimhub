@@ -87,6 +87,11 @@ spimhub.notify('text', 'info' | 'success' | 'warning' | 'error');
 await spimhub.confirm('Are you sure?');
 spimhub.log('in the [console] tab');
 
+// Language of the interface (en, es, pt, it, fr) and the 'lang' event
+spimhub.lang;
+spimhub.t({ en: 'Hello', es: 'Hola', pt: 'Olá', it: 'Ciao', fr: 'Bonjour' });
+spimhub.on('lang', (lang) => { /* redraw */ });
+
 // Data saved per extension
 spimhub.storage.set('count', 1);
 spimhub.storage.get('count', 0);

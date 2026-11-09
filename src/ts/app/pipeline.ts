@@ -92,7 +92,7 @@ window.addEventListener('load', () => {
         `<text x="${x + 6}" y="186" transform="rotate(-90 ${x + 6} 186)">${label}</text></g>`;
     const wire = (id: string, d: string, cls = 'dp-wire') => `<path id="dp-${id}" class="${cls}" d="${d}"/>`;
 
-    const DATAPATH = `
+    const DATAPATH = () => `
     <svg viewBox="0 0 960 330" class="dp" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <marker id="dp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -140,15 +140,15 @@ window.addEventListener('load', () => {
         <g id="dp-pcmux" class="dp-block"><rect x="12" y="148" width="18" height="44" rx="8"/></g>
         ${block('pc', 40, 140, 34, 60, 'PC')}
         ${block('add', 95, 70, 40, 28, '+4')}
-        ${block('imem', 95, 120, 70, 100, 'Instr\nmemory')}
+        ${block('imem', 95, 120, 70, 100, T('Instr\nmemory'))}
         ${latch('ifid', 185, 'IF/ID')}
-        ${block('rf', 225, 120, 90, 120, 'Registers')}
+        ${block('rf', 225, 120, 90, 120, T('Registers'))}
         ${block('imm', 245, 255, 60, 30, 'Imm')}
         ${block('cmp', 318, 84, 26, 22, '=')}
         ${latch('idex', 385, 'ID/EX')}
         <g id="dp-alu" class="dp-block"><path d="M455,115 L520,140 L520,210 L455,235 L455,190 L470,175 L455,160 Z"/><text x="496" y="179">ALU</text></g>
         ${latch('exmem', 585, 'EX/MEM')}
-        ${block('dmem', 620, 120, 90, 110, 'Data\nmemory')}
+        ${block('dmem', 620, 120, 90, 110, T('Data\nmemory'))}
         ${latch('memwb', 765, 'MEM/WB')}
         <g id="dp-wbmux" class="dp-block"><rect x="800" y="140" width="18" height="60" rx="8"/></g>
 
@@ -161,7 +161,7 @@ window.addEventListener('load', () => {
         <text id="dp-note-branch" class="dp-note dp-note-branch" x="40" y="72"></text>
         <text id="dp-note-fwd" class="dp-note dp-note-fwd" x="420" y="326"></text>
     </svg>`;
-    el.datapath.innerHTML = DATAPATH;
+    el.datapath.innerHTML = DATAPATH();
 
     const dp = (id: string) => el.datapath.querySelector<SVGElement>(`#dp-${id}`);
     const note = (id: string, text: string) => { dp(`note-${id}`).textContent = text; };
@@ -176,7 +176,7 @@ window.addEventListener('load', () => {
             const sv = v.stages[s];
             const g = dp(`stage-${s}`);
             g.classList.add(sv.state === 'idle' ? 'idle' : sv.state);
-            const label = sv.state === 'bubble' ? 'bubble (nop)' : sv.state === 'idle' ? '' : sv.row ? sv.row.basic : '';
+            const label = sv.state === 'bubble' ? T('bubble (nop)') : sv.state === 'idle' ? '' : sv.row ? sv.row.basic : '';
             g.querySelector('.dp-stage-instr').textContent = short(label, 30);
             g.querySelector('.dp-stage-state').textContent =
                 sv.state === 'stall' ? 'stall' : sv.state === 'flush' ? 'flush' : sv.row ? `#${sv.row.id}` : '';
@@ -522,6 +522,12 @@ window.addEventListener('load', () => {
         const g = (e.target as Element).closest('.dp-stage');
         const id = g && g.getAttribute('data-row');
         if (id !== null && id !== undefined) PIPELINE.select(+id);
+    });
+
+    // The labels of the datapath are drawn with T(): draw it again in the new language
+    HUB.on('lang', () => {
+        el.datapath.innerHTML = DATAPATH();
+        render();
     });
 
     render();

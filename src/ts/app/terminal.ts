@@ -133,12 +133,12 @@ window.addEventListener('load', () => {
         help: {
             desc: 'show this help',
             fn: () => {
-                print('SpimHub terminal. Available commands:', 'muted');
+                print(T('SpimHub terminal. Available commands:'), 'muted');
                 Object.entries(COMMANDS).forEach(([name, c]) => {
-                    print(`<span class="__f_keywords">${escape((name + ' ' + (c.args || '')).padEnd(22))}</span> ${escape(c.desc)}`, '', true);
+                    print(`<span class="__f_keywords">${escape((name + ' ' + (c.args || '')).padEnd(22))}</span> ${escape(T(c.desc))}`, '', true);
                 });
                 print('');
-                print('Shortcuts: F5 run · F10 step · Alt+Shift+R run active file · Ctrl+C pause · ↑↓ history · Tab complete', 'muted');
+                print(T('Shortcuts: F5 run · F10 step · Alt+Shift+R run active file · Ctrl+C pause · ↑↓ history · Tab complete'), 'muted');
             },
         },
         clear: { desc: 'clear the terminal', fn: () => TERMINAL.clear() },

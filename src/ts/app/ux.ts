@@ -355,7 +355,7 @@ window.addEventListener('load', () => {
                 ...(q.length > 1 ? example_items() : []),
             ];
             palette_items = all
-                .map(it => ({ it, score: fuzzy(q, it.title) }))
+                .map(it => ({ it, score: Math.max(fuzzy(q, it.title), fuzzy(q, I18N.tr(it.title))) }))
                 .filter(x => x.score > 0)
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 30)
@@ -363,7 +363,7 @@ window.addEventListener('load', () => {
         }
         palette_index = Math.min(palette_index, Math.max(0, palette_items.length - 1));
         palette_list.innerHTML = palette_items.map((it, i) =>
-            `<li class="${i === palette_index ? 'active' : ''}" data-i="${i}"><span>${escape(it.title)}</span><span class="muted">${escape((it as { hint?: string }).hint || '')}</span></li>`).join('')
+            `<li class="${i === palette_index ? 'active' : ''}" data-i="${i}"><span>${escape(I18N.tr(it.title))}</span><span class="muted">${escape((it as { hint?: string }).hint || '')}</span></li>`).join('')
             || '<li class="muted">no commands</li>';
         palette_list.querySelector('.active')?.scrollIntoView({ block: 'nearest' });
     };
@@ -377,7 +377,7 @@ window.addEventListener('load', () => {
     const palette = (prefix = '') => {
         palette_mode = prefix === ':' ? 'line' : 'commands';
         palette_input.placeholder = palette_mode === 'line' ? 'line number' : 'type a command, or a file name';
-        palette_input.value = '';
+        palette_input.value = prefix && prefix !== ':' ? prefix : '';
         palette_index = 0;
         modal(palette_el);
         render_palette();
@@ -446,6 +446,13 @@ window.addEventListener('load', () => {
         { id: 'view.extensions', title: 'open extensions', keys: 'Alt + Shift + X', run: () => EXTENSIONS.open() },
         { id: 'window.new', title: 'new editor window', keys: 'Alt + W', run: () => create_window() },
     ].forEach(c => COMMAND(c));
+
+    // Language: one palette entry per language + status bar item
+    (Object.keys(LANGS) as Lang[]).forEach(l => COMMAND({
+        id: `lang.${l}`, title: `[${LANGS[l]}] language`, run: () => SETTINGS.set('lang', l),
+    }));
+    const lang_item = status_item(`[${I18N.lang}]`, () => palette('lang'), 'language');
+    HUB.on('lang', (l) => lang_item.set(`[${l}]`));
 
     status();
 });

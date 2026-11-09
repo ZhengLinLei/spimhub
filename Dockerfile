@@ -40,7 +40,7 @@ FROM nginx:1.27-alpine AS web
 LABEL org.opencontainers.image.title="SpimHub" \
       org.opencontainers.image.description="MIPS & RISC-V Assembly IDE with a visual pipeline" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/ZhengLinLei/spimhub-depr"
+      org.opencontainers.image.source="https://github.com/ZhengLinLei/spimhub"
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=build /app/docs /usr/share/nginx/html

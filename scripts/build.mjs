@@ -35,7 +35,7 @@ const TARGET = 'es2020';
 // Concatenation order of docs/script.js (classic scripts sharing the global scope)
 const VENDOR = ['file_saver.js', 'lzma_worker.js', 'html2canvas.js'];
 const APP = [
-    'lang/mips.ts', 'lang/riscv.ts', 'format.ts', 'ux.ts', 'index.ts',
+    'i18n.ts', 'lang/mips.ts', 'lang/riscv.ts', 'format.ts', 'ux.ts', 'index.ts',
     'finder.ts', 'search.ts', 'dnd.ts', 'runner.ts', 'pipeline.ts', 'terminal.ts',
     'settings.ts', 'extensions.ts',
 ];

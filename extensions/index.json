@@ -6,7 +6,7 @@
         {
             "id": "pet",
             "name": "SpimHub pet",
-            "version": "1.0.1",
+            "version": "1.0.2",
             "description": "A small friend that lives in the corner: it celebrates your programs, cries with the exceptions and gives MIPS / RISC-V tips.",
             "author": "SpimHub",
             "path": "pet/",

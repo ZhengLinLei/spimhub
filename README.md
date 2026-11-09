@@ -117,6 +117,15 @@ npm run typecheck               # tsc
 | `Alt + K` | Light / dark theme |
 | `Alt + X` / `Alt + Z` / `Alt + Y` | Save / open / new project |
 
+## Languages
+
+English, Español, Português, Italiano and Français: `[settings]` → language, the `[en]` item of the
+status bar or the command palette (`language`). The first visit uses the language of the browser.
+The interface, the assembler / runtime errors and the pipeline explanations are translated; the
+code, the program output, the registers and the memory never are. Translations live in
+`src/ts/app/i18n.ts` (one column per language). Extensions receive `spimhub.lang`, `spimhub.t({ en, es, ... })`
+and the `lang` event.
+
 ## Extensions
 
 Extensions are JavaScript / CSS packages installed from **extension servers** (repositories): any HTTP

@@ -6,7 +6,7 @@
   "author": "ZhengLinLei <zheng9112003@icloud.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZhengLinLei/spimhub-depr.git"
+    "url": "https://github.com/ZhengLinLei/spimhub.git"
   },
   "bin": {
     "spimhub": "bin/spimhub.js"

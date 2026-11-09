@@ -17,6 +17,7 @@
  ========================================================================== */
 
 interface Settings {
+    lang: Lang;
     theme: 'light' | 'dark';
     fontSize: number;
     tabSize: number;
@@ -42,6 +43,7 @@ window.addEventListener('load', () => {
     const escape = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const DEFAULTS: Settings = {
         theme: (document.documentElement.getAttribute('theme') as Settings['theme']) || 'light',
+        lang: I18N.lang,
         fontSize: 12, tabSize: 4, autosave: false, arch: 'auto', forwarding: true, branchStage: 'EX',
     };
     let settings: Settings = { ...DEFAULTS };
@@ -58,6 +60,7 @@ window.addEventListener('load', () => {
         if (!key || key === 'theme') {
             if (document.documentElement.getAttribute('theme') !== settings.theme) set_theme(settings.theme);
         }
+        if (!key || key === 'lang') I18N.set(settings.lang);
         if (!key || key === 'fontSize') document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
         if (!key || key === 'tabSize') TAB_SIZE = settings.tabSize;
         if (!key || key === 'arch') RUNNER.set_arch(settings.arch, false);
@@ -77,6 +80,8 @@ window.addEventListener('load', () => {
 
     // The theme can also change from the menus / shortcuts
     HUB.on('theme', (theme) => { if (settings.theme !== theme) { settings.theme = theme; save(); render(); } });
+    // The language can also change from the palette / status bar
+    HUB.on('lang', (lang) => { if (settings.lang !== lang) { settings.lang = lang; save(); } render(); });
 
     // ---------------- Autosave ----------------
     let autosave: ReturnType<typeof setTimeout> | null = null;
@@ -116,9 +121,7 @@ window.addEventListener('load', () => {
                 <input type="text" class="server-url" placeholder="https://example.com/spimhub-extensions/" spellcheck="false">
                 <a class="server-add bg-success">[add server]</a>
             </div>
-            <p class="muted">A server is a folder served over HTTP with an <code>index.json</code> in its root and one folder per extension
-            (<code>manifest.json</code>, <code>main.js</code>...). Extensions run JavaScript inside SpimHub: add only servers you trust.
-            Example: the <code>extensions/</code> folder of the repository.</p>`;
+            <p class="muted">${escape(T('A server is a folder served over HTTP with an index.json in its root and one folder per extension (manifest.json, main.js...). Extensions run JavaScript inside SpimHub: add only servers you trust. Example: the extensions/ folder of the repository.'))}</p>`;
     };
 
     const render = () => {
@@ -126,6 +129,7 @@ window.addEventListener('load', () => {
         main.innerHTML = `
             <section data-section="appearance">
                 <h3>[appearance]</h3>
+                <div class="row"><span>language</span>${choice('lang', (Object.keys(LANGS) as Lang[]).map(l => [l, LANGS[l]] as [Lang, string]))}</div>
                 <div class="row"><span>theme</span>${choice('theme', [['light', 'light'], ['dark', 'dark']])}</div>
                 <div class="row"><span>font size</span>${choice('fontSize', [[11, '11'], [12, '12'], [13, '13'], [14, '14'], [16, '16']])}</div>
             </section>
