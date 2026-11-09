@@ -19,6 +19,7 @@
 interface Settings {
     lang: Lang;
     theme: 'light' | 'dark';
+    font: FontId;
     fontSize: number;
     tabSize: number;
     autosave: boolean;
@@ -26,6 +27,17 @@ interface Settings {
     forwarding: boolean;
     branchStage: 'ID' | 'EX';
 }
+
+type FontId = 'courier' | 'courier-prime' | 'cutive' | 'plex' | 'red-hat';
+
+// Editor / interface fonts (Courier Prime, Cutive Mono, IBM Plex Mono and Red Hat Mono come from Google Fonts)
+const FONTS: Record<FontId, [string, string]> = {
+    'courier':       ['Courier New', "'Courier New', 'Courier Prime', 'Cutive Mono', Courier, monospace"],
+    'courier-prime': ['Courier Prime', "'Courier Prime', 'Courier New', Courier, monospace"],
+    'cutive':        ['Cutive Mono', "'Cutive Mono', 'Courier Prime', 'Courier New', monospace"],
+    'plex':          ['IBM Plex Mono', "'IBM Plex Mono', 'Courier New', monospace"],
+    'red-hat':       ['Red Hat Mono', "'Red Hat Mono', 'Courier New', monospace"],
+};
 
 interface SettingsApi {
     open(section?: string): void;
@@ -44,7 +56,7 @@ window.addEventListener('load', () => {
     const DEFAULTS: Settings = {
         theme: (document.documentElement.getAttribute('theme') as Settings['theme']) || 'light',
         lang: I18N.lang,
-        fontSize: 12, tabSize: 4, autosave: false, arch: 'auto', forwarding: true, branchStage: 'EX',
+        font: 'courier', fontSize: 12, tabSize: 4, autosave: false, arch: 'auto', forwarding: true, branchStage: 'EX',
     };
     let settings: Settings = { ...DEFAULTS };
     try { settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { /* defaults */ }
@@ -61,6 +73,10 @@ window.addEventListener('load', () => {
             if (document.documentElement.getAttribute('theme') !== settings.theme) set_theme(settings.theme);
         }
         if (!key || key === 'lang') I18N.set(settings.lang);
+        if (!key || key === 'font') {
+            const font = FONTS[settings.font] || FONTS.courier;
+            document.documentElement.style.setProperty('--font-mono', font[1]);
+        }
         if (!key || key === 'fontSize') document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
         if (!key || key === 'tabSize') TAB_SIZE = settings.tabSize;
         if (!key || key === 'arch') RUNNER.set_arch(settings.arch, false);
@@ -131,6 +147,8 @@ window.addEventListener('load', () => {
                 <h3>[appearance]</h3>
                 <div class="row"><span>language</span>${choice('lang', (Object.keys(LANGS) as Lang[]).map(l => [l, LANGS[l]] as [Lang, string]))}</div>
                 <div class="row"><span>theme</span>${choice('theme', [['light', 'light'], ['dark', 'dark']])}</div>
+                <div class="row"><span>font</span>${choice('font', (Object.keys(FONTS) as FontId[]).map(f => [f, FONTS[f][0]] as [FontId, string]))}</div>
+                <p class="muted">Courier New uses the font of the system; where it is not installed (Linux) Courier Prime is used, a font designed after Courier New.</p>
                 <div class="row"><span>font size</span>${choice('fontSize', [[11, '11'], [12, '12'], [13, '13'], [14, '14'], [16, '16']])}</div>
             </section>
             <section data-section="editor">
@@ -161,6 +179,11 @@ window.addEventListener('load', () => {
                 </div>
                 <p class="muted">Files, settings and extensions are saved in this browser (localStorage).</p>
             </section>`;
+        // Each font option is shown with its own font
+        main.querySelectorAll<HTMLElement>('a[data-set="font"]').forEach(a => {
+            const font = FONTS[JSON.parse(a.dataset.value) as FontId];
+            if (font) a.style.fontFamily = font[1];
+        });
     };
 
     main.addEventListener('click', async (e) => {

@@ -307,6 +307,12 @@ const DICT: Record<string, Row> = {
     'appearance':                           ['apariencia', 'aparência', 'aspetto', 'apparence'],
     'light':                                ['claro', 'claro', 'chiaro', 'clair'],
     'dark':                                 ['oscuro', 'escuro', 'scuro', 'sombre'],
+    'font':                                 ['fuente', 'fonte', 'carattere', 'police'],
+    'Courier New uses the font of the system; where it is not installed (Linux) Courier Prime is used, a font designed after Courier New.':
+        ['Courier New usa la fuente del sistema; donde no está instalada (Linux) se usa Courier Prime, una fuente diseñada a partir de Courier New.',
+         'Courier New usa a fonte do sistema; onde não está instalada (Linux) é usada a Courier Prime, uma fonte desenhada a partir da Courier New.',
+         'Courier New usa il carattere del sistema; dove non è installato (Linux) si usa Courier Prime, un carattere disegnato a partire da Courier New.',
+         'Courier New utilise la police du système ; là où elle n\'est pas installée (Linux), Courier Prime est utilisée, une police dessinée d\'après Courier New.'],
     'font size':                            ['tamaño de letra', 'tamanho da fonte', 'dimensione carattere', 'taille de police'],
     'tab size':                             ['tamaño del tabulador', 'tamanho da tabulação', 'dimensione tabulazione', 'taille de tabulation'],
     'autosave':                             ['autoguardado', 'salvamento automático', 'salvataggio automatico', 'enregistrement auto'],

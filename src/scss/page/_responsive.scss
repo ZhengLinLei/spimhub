@@ -1,0 +1,219 @@
+// =================
+//
+//  Responsive layout: tablet (<= 900px) and phone (<= 640px)
+//  JS side: src/ts/app/responsive.ts (drawer, tap menus, --header-h)
+//
+// =================
+
+$border: #{ rgba(var(--color-invert-rgb), 0.3) };
+
+// Popups and modals never wider than the screen (all sizes)
+body {
+    > footer, #verification-step { max-width: calc(100vw - 16px); }
+    #warning { max-width: calc(100vw - 32px); min-width: 0; }
+    #codesnap canvas { min-width: 0; max-width: min(900px, 94vw); }
+    #toasts .toast { max-width: min(420px, calc(100vw - 32px)); }
+    #drawer-backdrop { display: none; }
+}
+
+// ---------------- Tablet ----------------
+@media (max-width: 900px) {
+    html {
+        --explorer-size: 220px;
+        --explorer-child-size: 220px;
+    }
+
+    body {
+        // Top bar: quick links go to a second row when they do not fit
+        > header {
+            flex-wrap: wrap;
+            > div.right { margin-left: auto; }
+        }
+
+        // Runner / pipeline toolbars wrap instead of being cut
+        > main > main {
+            #main-runner, #main-pipeline {
+                > .cap {
+                    flex-wrap: wrap;
+                    .title { padding: 7px; }
+                    .run { flex-wrap: wrap; }
+                }
+            }
+        }
+
+        #main-settings .settings-main { padding: 10px 16px 60px; }
+        #main-settings .row > span:first-child { min-width: 140px; }
+        #opt-extensions #extensions-manager #extensions-manager-ui,
+        #main-extensions > main { padding: 16px; }
+    }
+}
+
+// ---------------- Phone ----------------
+@media (max-width: 640px) {
+    html {
+        --terminal-size: 40%;
+        --register-section-size: 100%;
+    }
+
+    body {
+        height: 100dvh;
+
+        // Top bar: menus on one row, quick links on another (scrollable)
+        > header {
+            flex-wrap: wrap;
+            > div.left, > div.right { width: 100%; }
+            > div.left {
+                flex-wrap: wrap;
+                > div { flex-wrap: wrap; }
+                a { padding: 6px 4px; }
+                // Dropdowns as a full width sheet under the header
+                ul {
+                    position: fixed;
+                    top: var(--header-h, 48px);
+                    left: 0;
+                    right: 0;
+                    width: auto;
+                    max-height: calc(100dvh - var(--header-h, 48px) - 22px);
+                    overflow: auto;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+                    li a { grid-template-columns: 1fr auto; gap: 16px; padding: 10px 12px; }
+                }
+                // Hover does not exist on touch: menus open with a tap (.open)
+                a:hover + ul { display: none; }
+                .open > ul { display: block !important; }
+                .open > a { background: var(--color-hover); }
+            }
+            > div.right {
+                border-top: .5px solid $border;
+                overflow-x: auto;
+                scrollbar-width: none;
+                > div { flex: 1; }
+                a { flex: 1; text-align: center; padding: 7px 4px; }
+            }
+        }
+
+        > main {
+            position: relative;
+            min-height: 0;
+
+            // Explorer as a drawer over the editor
+            > header {
+                position: fixed;
+                top: var(--header-h, 48px);
+                bottom: 22px;
+                left: 0;
+                width: min(86vw, 320px) !important;
+                z-index: 10;
+                box-shadow: 6px 0 24px rgba(0, 0, 0, .25);
+                overflow-y: auto;
+                .scroll-x { display: none; }
+                #opt-files, #opt-search, #opt-extensions { min-width: 0; }
+                #opt-files a, #opt-search a { padding-top: 9px; padding-bottom: 9px; }
+            }
+            > main { width: 100% !important; }
+
+            // One editor window per row
+            > main #main-editor {
+                grid-template-columns: 100% !important;
+                grid-auto-rows: minmax(0, 1fr);
+                .editor-window { grid-column: span 1 !important; }
+                .editor-window > .find-bar {
+                    flex-wrap: wrap;
+                    input { width: 100% !important; flex: 1 1 140px; }
+                }
+            }
+
+            // Runner: text / data on top, registers below, everything scrolls
+            > main #main-runner {
+                > .cap {
+                    flex-wrap: wrap;
+                    .title { width: 100%; padding: 7px; }
+                    .run { flex-wrap: wrap; width: 100%; > a, > span { flex: 1; text-align: center; } }
+                    .run > :first-child { border-left: none; }
+                }
+                > main {
+                    flex-direction: column;
+                    overflow-y: auto;
+                    > section {
+                        flex: none;
+                        .scroll-x, .scroll-y { display: none; }
+                        &:first-child { width: 100%; height: 75%; min-height: 360px; }
+                        &:last-child {
+                            width: 100%;
+                            height: 60%;
+                            min-height: 300px;
+                            border-left: none;
+                            border-top: .5px solid $border;
+                        }
+                    }
+                }
+            }
+
+            // Pipeline
+            > main #main-pipeline {
+                > .cap {
+                    flex-wrap: wrap;
+                    .title { width: 100%; padding: 7px; }
+                    > div { width: 100%; }
+                    .run { flex-wrap: wrap; > a, > span { flex: 1 0 auto; text-align: center; } }
+                    .run > :first-child { border-left: none; }
+                }
+                .pl-bottom { flex: none; }
+                .pl-diagram { max-height: 60vh; }
+                .pl-memmap { width: 100% !important; svg { max-width: 300px; margin: 0 auto; } }
+                .pl-side { flex-direction: column !important; }
+            }
+
+            // Terminal
+            > main #terminal .scroll-y { display: none; }
+        }
+
+        // Settings
+        #main-settings {
+            .settings-main { padding: 6px 12px 60px; }
+            .row > span:first-child { min-width: 0; width: 100%; }
+            .choice { flex-wrap: wrap; }
+            .add-server {
+                flex-wrap: wrap;
+                input.server-name { width: 100%; border-right: 0; border-bottom: .5px solid $border; }
+            }
+        }
+
+        // Status bar: scroll instead of overflow
+        #status-bar {
+            overflow-x: auto;
+            scrollbar-width: none;
+            > div { flex-shrink: 0; }
+            .sb-file { max-width: 30vw; }
+        }
+
+        #toasts { right: 8px; left: 8px; align-items: stretch; }
+
+        // Popups take the whole width
+        > .modal { width: 100vw; }
+        > footer, #verification-step { width: 100%; max-width: 100vw; }
+
+        // Backdrop behind the drawer
+        #drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 9;
+            background-color: rgba(0, 0, 0, .25);
+        }
+        &.drawer-open #drawer-backdrop { display: block; }
+    }
+}
+
+// Touch devices: avoid iOS zoom on focus (inputs must be >= 16px)
+@media (max-width: 640px) and (pointer: coarse) {
+    body {
+        input, select, .palette-input {
+            font-size: 16px;
+        }
+        .editor-file {
+            textarea, pre, pre *, .line-numbers-rows, .line-numbers-rows * {
+                font-size: max(16px, var(--font-size)) !important;
+            }
+        }
+    }
+}

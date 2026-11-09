@@ -24,6 +24,13 @@ body{
             cursor: col-resize !important;
         }
     }
+    // Dragging a resize handle never selects text
+    &.row-resize, &.col-resize {
+        &, * {
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
+    }
 
     // Styles
     background: var(--color-primary);

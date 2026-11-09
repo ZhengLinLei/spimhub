@@ -37,7 +37,7 @@ const VENDOR = ['file_saver.js', 'lzma_worker.js', 'html2canvas.js'];
 const APP = [
     'i18n.ts', 'lang/mips.ts', 'lang/riscv.ts', 'format.ts', 'ux.ts', 'index.ts',
     'finder.ts', 'search.ts', 'dnd.ts', 'runner.ts', 'pipeline.ts', 'terminal.ts',
-    'settings.ts', 'extensions.ts',
+    'settings.ts', 'extensions.ts', 'responsive.ts',
 ];
 const IMAGES = /\.(png|ico|svg|jpe?g|gif|webp)$/i;
 

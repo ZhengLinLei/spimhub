@@ -1063,6 +1063,14 @@ window.addEventListener('load', ()=> {
         }
         return {x, y};
     }
+    // Resize handles: no text selection while dragging
+    document.addEventListener('mousedown', (e) => {
+        if ((e.target as HTMLElement).closest?.('.scroll-x, .scroll-y')) {
+            e.preventDefault();
+            window.getSelection()?.removeAllRanges();
+        }
+    }, true);
+
     // Resize section
     document.querySelector('.scroll-x.header').addEventListener('mousedown', (e)=> {
         let _parent = opt_main.el;
