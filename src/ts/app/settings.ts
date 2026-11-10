@@ -33,7 +33,7 @@ type FontId = 'courier' | 'courier-prime' | 'cutive' | 'plex' | 'red-hat';
 // Editor / interface fonts (Courier Prime, Cutive Mono, IBM Plex Mono and Red Hat Mono come from Google Fonts)
 const FONTS: Record<FontId, [string, string]> = {
     'courier':       ['Courier New', "'Courier New', 'Courier Prime', 'Cutive Mono', Courier, monospace"],
-    'courier-prime': ['Courier Prime', "'Courier Prime', 'Courier New', Courier, monospace"],
+    'courier-prime': ['Courier Prime', "'Courier Prime', 'Cultive Mono', Courier, monospace"],
     'cutive':        ['Cutive Mono', "'Cutive Mono', 'Courier Prime', 'Courier New', monospace"],
     'plex':          ['IBM Plex Mono', "'IBM Plex Mono', 'Courier New', monospace"],
     'red-hat':       ['Red Hat Mono', "'Red Hat Mono', 'Courier New', monospace"],
@@ -56,7 +56,7 @@ window.addEventListener('load', () => {
     const DEFAULTS: Settings = {
         theme: (document.documentElement.getAttribute('theme') as Settings['theme']) || 'light',
         lang: I18N.lang,
-        font: 'courier', fontSize: 12, tabSize: 4, autosave: false, arch: 'auto', forwarding: true, branchStage: 'EX',
+        font: 'courier-prime', fontSize: 12, tabSize: 4, autosave: false, arch: 'auto', forwarding: true, branchStage: 'EX',
     };
     let settings: Settings = { ...DEFAULTS };
     try { settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { /* defaults */ }
