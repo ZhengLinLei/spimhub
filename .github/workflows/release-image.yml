@@ -44,7 +44,6 @@ jobs:
         with:
           context: .
           file: run.Dockerfile
-          target: full
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
